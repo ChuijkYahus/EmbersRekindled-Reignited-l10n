@@ -11,15 +11,20 @@ import com.rekindled.embers.api.EmbersAPI;
 import com.rekindled.embers.block.ChamberBlockBase;
 import com.rekindled.embers.block.ChamberBlockBase.ChamberConnection;
 import com.rekindled.embers.block.MechEdgeBlockBase;
+import com.rekindled.embers.blockentity.PipeBlockEntityBase;
 import com.rekindled.embers.compat.createthrusters.ThrustersCompat;
 import com.rekindled.embers.item.AshenArmorItem;
 import com.rekindled.embers.item.MixedGogglesItem;
 import org.jetbrains.annotations.Nullable;
 
+import com.simibubi.create.api.behaviour.display.DisplaySource;
+import com.simibubi.create.api.registry.CreateRegistries;
 import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.content.equipment.goggles.GogglesItem;
 import com.simibubi.create.api.behaviour.movement.MovementBehaviour;
 import com.simibubi.create.api.contraption.BlockMovementChecks;
+import com.simibubi.create.content.redstone.displayLink.DisplayLinkBlock;
+import com.simibubi.create.content.redstone.displayLink.source.AccumulatedItemCountDisplaySource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -58,6 +63,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import com.rekindled.embers.api.capabilities.EmbersCapabilities;
 
 public final class CreateCompat {
+	private static final boolean ENABLE_KINETIC_MINI_BOILER_REGISTRATION = false;
+	private static final AccumulatedFluidCountDisplaySource ACCUMULATED_FLUIDS = new AccumulatedFluidCountDisplaySource();
+	private static final FluidThroughputDisplaySource FLUID_THROUGHPUT = new FluidThroughputDisplaySource();
 	private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(Embers.MODID);
 	private static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Embers.MODID);
 	private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES =
@@ -112,15 +120,21 @@ public final class CreateCompat {
 		BLOCK_ENTITIES.register(modEventBus);
 		CREATIVE_TABS.register(modEventBus);
 		modEventBus.addListener(CreateCompat::commonSetup);
-		modEventBus.addListener(CreateCompat::registerCreateArmInteractionPointTypes);
+		modEventBus.addListener(CreateCompat::registerCreateRegistries);
 		modEventBus.addListener(CreateCompat::registerCapabilities);
 		if (FMLEnvironment.dist.isClient()) {
 			CreateCompatClient.init(modEventBus);
 		}
 	}
 
-	private static void registerCreateArmInteractionPointTypes(RegisterEvent event) {
+	private static void registerCreateRegistries(RegisterEvent event) {
 		DawnstoneAnvilArmInteractionPointType.register(event);
+		event.register(CreateRegistries.DISPLAY_SOURCE,
+				ResourceLocation.fromNamespaceAndPath(Embers.MODID, "accumulate_fluids"),
+				() -> ACCUMULATED_FLUIDS);
+		event.register(CreateRegistries.DISPLAY_SOURCE,
+				ResourceLocation.fromNamespaceAndPath(Embers.MODID, "fluid_throughput"),
+				() -> FLUID_THROUGHPUT);
 	}
 
 	private static void commonSetup(FMLCommonSetupEvent event) {
@@ -136,6 +150,10 @@ public final class CreateCompat {
 			MovementBehaviour.REGISTRY.register(RegistryManager.EMBER_RELAY.get(), EmberReceiverMovementBehaviour.INSTANCE);
 			MovementBehaviour.REGISTRY.register(RegistryManager.MIRROR_RELAY.get(), EmberReceiverMovementBehaviour.INSTANCE);
 			MovementBehaviour.REGISTRY.register(RegistryManager.BEAM_SPLITTER.get(), EmberReceiverMovementBehaviour.INSTANCE);
+			addCreateDisplaySource(RegistryManager.ITEM_PIPE_ENTITY.get(), "accumulate_items");
+			addCreateDisplaySource(RegistryManager.ITEM_PIPE_ENTITY.get(), "item_throughput");
+			DisplaySource.BY_BLOCK_ENTITY.add(RegistryManager.FLUID_PIPE_ENTITY.get(), ACCUMULATED_FLUIDS);
+			DisplaySource.BY_BLOCK_ENTITY.add(RegistryManager.FLUID_PIPE_ENTITY.get(), FLUID_THROUGHPUT);
 			GogglesItem.addIsWearingPredicate(player -> {
 				if (player.getItemBySlot(EquipmentSlot.HEAD).is(ENGINEERS_ASHEN_GOGGLES.get())) {
 					return true;
@@ -166,6 +184,22 @@ public final class CreateCompat {
 
 	public static @Nullable Vec3 getMovingEmberReceiverPosition(Level level, BlockPos originalPosition) {
 		return EmberReceiverMovementBehaviour.getPhysicalPosition(level, originalPosition);
+	}
+
+	public static void notifyPipeTransfer(PipeBlockEntityBase pipe, int amount) {
+		if (amount <= 0 || pipe.getLevel() == null || pipe.getLevel().isClientSide) {
+			return;
+		}
+		DisplayLinkBlock.sendToGatherers(pipe.getLevel(), pipe.getBlockPos(),
+				(displayLink, source) -> source.itemReceived(displayLink, amount),
+				AccumulatedItemCountDisplaySource.class);
+	}
+
+	private static void addCreateDisplaySource(BlockEntityType<?> blockEntityType, String sourcePath) {
+		DisplaySource source = DisplaySource.get(ResourceLocation.fromNamespaceAndPath("create", sourcePath));
+		if (source != null) {
+			DisplaySource.BY_BLOCK_ENTITY.add(blockEntityType, source);
+		}
 	}
 
 	private static BlockMovementChecks.CheckResult isEmbersMultiblockAttached(BlockState state, net.minecraft.world.level.Level level,
@@ -243,6 +277,9 @@ public final class CreateCompat {
 	private static Map<CreatePoweredUpgradeType, DeferredBlock<CreatePoweredEmberUpgradeBlock>> registerCreatePoweredUpgradeBlocks() {
 		EnumMap<CreatePoweredUpgradeType, DeferredBlock<CreatePoweredEmberUpgradeBlock>> blocks = new EnumMap<>(CreatePoweredUpgradeType.class);
 		for (CreatePoweredUpgradeType type : CreatePoweredUpgradeType.values()) {
+			if (type == CreatePoweredUpgradeType.MINI_BOILER && !ENABLE_KINETIC_MINI_BOILER_REGISTRATION) {
+				continue;
+			}
 			blocks.put(type, BLOCKS.register(type.poweredPath(),
 					() -> new CreatePoweredEmberUpgradeBlock(type, BlockBehaviour.Properties.of()
 							.mapColor(MapColor.TERRACOTTA_ORANGE)

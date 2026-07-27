@@ -9,6 +9,7 @@ import com.rekindled.embers.api.block.IDial;
 import com.rekindled.embers.api.tile.IExtraDialInformation;
 import com.rekindled.embers.network.PacketHandler;
 import com.rekindled.embers.network.message.MessageDialUpdateRequest;
+import com.rekindled.embers.util.ComparatorSignalUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -107,6 +108,17 @@ public abstract class DialBaseBlock extends EmbersDirectionalBlock implements ID
 				}
 			}
 		}
+	}
+
+	@Override
+	public boolean hasAnalogOutputSignal(BlockState state) {
+		return true;
+	}
+
+	@Override
+	public int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
+		Direction facing = state.getValue(FACING);
+		return ComparatorSignalUtil.getDialSignal(level, pos.relative(facing, -1), facing.getOpposite(), getDialType());
 	}
 
 	@Override

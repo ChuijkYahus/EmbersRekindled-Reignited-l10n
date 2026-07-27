@@ -1,21 +1,17 @@
 {
   "variants": {
     "facing=down": {
-      "model": "embers:block/create_powered_mini_boiler",
-      "x": 180
+      "model": "embers:block/create_powered_mini_boiler"
     },
     "facing=east": {
       "model": "embers:block/create_powered_mini_boiler",
-      "x": 90,
       "y": 90
     },
     "facing=north": {
-      "model": "embers:block/create_powered_mini_boiler",
-      "x": 90
+      "model": "embers:block/create_powered_mini_boiler"
     },
     "facing=south": {
       "model": "embers:block/create_powered_mini_boiler",
-      "x": 90,
       "y": 180
     },
     "facing=up": {
@@ -23,7 +19,6 @@
     },
     "facing=west": {
       "model": "embers:block/create_powered_mini_boiler",
-      "x": 90,
       "y": 270
     }
   }

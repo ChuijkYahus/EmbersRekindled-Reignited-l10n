@@ -43,6 +43,8 @@ public class GeologicSeparatorBlockEntity extends OpenTankBlockEntity implements
 		tank = new FluidTank(ConfigManager.GEO_SEPARATOR_CAPACITY.get()) {
 			@Override
 			public void onContentsChanged() {
+				if (getFluid().isEmpty())
+					setFluid(FluidStack.EMPTY);
 				GeologicSeparatorBlockEntity.this.setChanged();
 			}
 

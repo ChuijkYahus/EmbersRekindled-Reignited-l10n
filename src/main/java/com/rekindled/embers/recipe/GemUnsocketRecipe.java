@@ -29,56 +29,62 @@ public class GemUnsocketRecipe implements CraftingRecipe {
 
 	@Override
 	public boolean matches(CraftingInput container, Level level) {
-		ItemStack cloak = ItemStack.EMPTY;
-		int cloaks = 0;
+		ItemStack holderStack = ItemStack.EMPTY;
 		for (int i = 0; i < container.size(); i++) {
 			ItemStack stack = container.getItem(i);
-			if (!stack.isEmpty()) {
-				if (stack.getItem() instanceof IInflictorGemHolder) {
-					if (((IInflictorGemHolder) stack.getItem()).getAttachedGemCount(stack) > 0) {
-						cloak = stack;
-					}
-					cloaks++;
-				} else {
-					return false;
-				}
+			if (stack.isEmpty()) {
+				continue;
 			}
+			if (!holderStack.isEmpty() || !(stack.getItem() instanceof IInflictorGemHolder holder)
+					|| holder.getAttachedGemCount(stack) == 0) {
+				return false;
+			}
+			holderStack = stack;
 		}
-		return !cloak.isEmpty() && cloaks == 1 && container.size() >= ((IInflictorGemHolder) cloak.getItem()).getAttachedGemCount(cloak);
+		return !holderStack.isEmpty();
 	}
 
 	@Override
 	public ItemStack assemble(CraftingInput container, HolderLookup.Provider registryAccess) {
-		ItemStack capeStack = ItemStack.EMPTY;
 		for (int i = 0; i < container.size(); i++) {
-			if (!container.getItem(i).isEmpty() && container.getItem(i).getItem() instanceof IInflictorGemHolder) {
-				capeStack = container.getItem(i).copy();
+			ItemStack stack = container.getItem(i);
+			if (!stack.isEmpty() && stack.getItem() instanceof IInflictorGemHolder holder) {
+				ItemStack result = stack.copy();
+				int slot = firstAttachedGemSlot(holder, result);
+				if (slot >= 0) {
+					holder.detachGem(result, slot);
+				}
+				return result;
 			}
 		}
-		if (!capeStack.isEmpty()) {
-			((IInflictorGemHolder) capeStack.getItem()).clearGems(capeStack);
-		}
-		return capeStack;
+		return ItemStack.EMPTY;
 	}
 
 	@Override
 	public NonNullList<ItemStack> getRemainingItems(CraftingInput container) {
 		NonNullList<ItemStack> gems = NonNullList.withSize(container.size(), ItemStack.EMPTY);
-		int index = 0;
 		for (int i = 0; i < container.size(); i++) {
 			ItemStack stack = container.getItem(i);
-			if (!stack.isEmpty()) {
-				if (stack.getItem() instanceof IInflictorGemHolder) {
-					for (ItemStack gem : ((IInflictorGemHolder) stack.getItem()).getAttachedGems(stack)) {
-						if (!gem.isEmpty()) {
-							gems.set(index, gem);
-							index++;
-						}
-					}
+			if (!stack.isEmpty() && stack.getItem() instanceof IInflictorGemHolder holder) {
+				ItemStack holderCopy = stack.copy();
+				int slot = firstAttachedGemSlot(holder, holderCopy);
+				if (slot >= 0) {
+					gems.set(i, holder.detachGem(holderCopy, slot));
 				}
+				break;
 			}
 		}
 		return gems;
+	}
+
+	private static int firstAttachedGemSlot(IInflictorGemHolder holder, ItemStack holderStack) {
+		ItemStack[] attachedGems = holder.getAttachedGems(holderStack);
+		for (int slot = 0; slot < attachedGems.length; slot++) {
+			if (!attachedGems[slot].isEmpty()) {
+				return slot;
+			}
+		}
+		return -1;
 	}
 
 	@Override

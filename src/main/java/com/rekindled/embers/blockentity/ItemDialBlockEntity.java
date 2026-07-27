@@ -1,7 +1,5 @@
 package com.rekindled.embers.blockentity;
 
-import com.rekindled.embers.util.ItemData;
-
 import com.rekindled.embers.RegistryManager;
 import com.rekindled.embers.api.tile.IDialEntity;
 
@@ -37,7 +35,7 @@ public class ItemDialBlockEntity extends BlockEntity implements IDialEntity {
 		itemStacks = new ItemStack[items.size()];
 		if (items.size() > 0) {
 			for (int i = 0; i < items.size(); i++) {
-				itemStacks[i] = ItemData.parse(items.getCompound(i));
+				itemStacks[i] = ItemStack.parseOptional(registries, items.getCompound(i));
 			}
 		}
 		if (nbt.contains("more_lines"))
@@ -64,7 +62,7 @@ public class ItemDialBlockEntity extends BlockEntity implements IDialEntity {
 					ListTag items = new ListTag();
 					for (int i = 0; i < cap.getSlots() && i < maxLines; i++) {
 						ItemStack stack = cap.getStackInSlot(i);
-						items.add(stack.save(registries));
+						items.add(stack.saveOptional(registries));
 					}
 					nbt.put("items", items);
 

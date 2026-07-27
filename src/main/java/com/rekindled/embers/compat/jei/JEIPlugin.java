@@ -55,7 +55,8 @@ public class JEIPlugin implements IModPlugin {
 	public static final RecipeType<IBoilingRecipe> BOILING = RecipeType.create(Embers.MODID, "boiling", IBoilingRecipe.class);
 	public static final RecipeType<IGaseousFuelRecipe> GASEOUS_FUEL = RecipeType.create(Embers.MODID, "gaseous_fuel", IGaseousFuelRecipe.class);
 	public static final RecipeType<ICatalysisCombustionRecipe> CATALYSIS_COMBUSTION = RecipeType.create(Embers.MODID, "catalysis_combustion", ICatalysisCombustionRecipe.class);
-	public static final RecipeType<IDawnstoneAnvilRecipe> DAWNSTONE_ANVIL = RecipeType.create(Embers.MODID, "dawnstone_anvil", IDawnstoneAnvilRecipe.class);
+	public static final RecipeType<RecipeHolder<IDawnstoneAnvilRecipe>> DAWNSTONE_ANVIL =
+			RecipeType.createRecipeHolderType(ResourceLocation.fromNamespaceAndPath(Embers.MODID, "dawnstone_anvil"));
 	public static final RecipeType<WorldInteractionRecipe> WORLD_INTERACTION = RecipeType.create(Embers.MODID, "world_interaction", WorldInteractionRecipe.class);
 
 	@Override
@@ -148,9 +149,29 @@ public class JEIPlugin implements IModPlugin {
 
 		addRecipes(register, manager, CATALYSIS_COMBUSTION, RegistryManager.CATALYSIS_COMBUSTION.get());
 
-		addRecipes(register, manager, DAWNSTONE_ANVIL, RegistryManager.DAWNSTONE_ANVIL_RECIPE.get());
+		register.addRecipes(DAWNSTONE_ANVIL, getDawnstoneAnvilRecipes(manager));
 
 		register.addRecipes(WORLD_INTERACTION, List.of(WorldInteractionRecipe.solidifiedMetal()));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<RecipeHolder<IDawnstoneAnvilRecipe>> getDawnstoneAnvilRecipes(RecipeManager manager) {
+		List<RecipeHolder<IDawnstoneAnvilRecipe>> recipes = new ArrayList<>();
+		for (RecipeHolder<IDawnstoneAnvilRecipe> holder : manager.getAllRecipesFor(RegistryManager.DAWNSTONE_ANVIL_RECIPE.get())) {
+			IDawnstoneAnvilRecipe recipe = holder.value();
+			if (recipe instanceof IVisuallySplitRecipe<?> splitRecipe) {
+				List<IDawnstoneAnvilRecipe> visualRecipes =
+						(List<IDawnstoneAnvilRecipe>) (List<?>) splitRecipe.getVisualRecipes();
+				for (int index = 0; index < visualRecipes.size(); index++) {
+					ResourceLocation displayId = ResourceLocation.fromNamespaceAndPath(holder.id().getNamespace(),
+							holder.id().getPath() + "/display_" + index);
+					recipes.add(new RecipeHolder<>(displayId, visualRecipes.get(index)));
+				}
+			} else {
+				recipes.add(holder);
+			}
+		}
+		return recipes;
 	}
 
 

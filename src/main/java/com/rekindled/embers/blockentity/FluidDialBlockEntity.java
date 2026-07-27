@@ -15,7 +15,7 @@ import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import com.rekindled.embers.compat.legacy.capabilities.ForgeCapabilities;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
@@ -32,13 +32,16 @@ public class FluidDialBlockEntity extends BlockEntity implements IDialEntity {
 
 	@Override
 	public void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
+		super.loadAdditional(nbt, registries);
 		ListTag tanks = nbt.getList("tanks", Tag.TAG_COMPOUND);
 		fluids = new FluidStack[tanks.size()];
 		capacities = new int[tanks.size()];
 		if (tanks.size() > 0) {
 			for (int i = 0; i < tanks.size(); i++) {
 				CompoundTag tank = tanks.getCompound(i);
-				fluids[i] = FluidStack.parseOptional(registries, tank);
+				CompoundTag fluid = tank.copy();
+				fluid.remove("capacity");
+				fluids[i] = FluidStack.parseOptional(registries, fluid);
 				capacities[i] = tank.getInt("capacity");
 			}
 		}
@@ -59,14 +62,16 @@ public class FluidDialBlockEntity extends BlockEntity implements IDialEntity {
 		boolean display = false;
 		if (state.hasProperty(BlockStateProperties.FACING)) {
 			Direction facing = state.getValue(BlockStateProperties.FACING);
-			BlockEntity blockEntity = level.getBlockEntity(worldPosition.relative(facing, -1));
-			if (blockEntity != null) {
-				IFluidHandler cap = com.rekindled.embers.util.CapabilityCompat.getCapability(blockEntity, ForgeCapabilities.FLUID_HANDLER, facing.getOpposite()).orElse(com.rekindled.embers.util.CapabilityCompat.getCapability(blockEntity, ForgeCapabilities.FLUID_HANDLER, null).orElse(null));
+			BlockPos targetPos = worldPosition.relative(facing, -1);
+			if (level.getBlockEntity(targetPos) != null) {
+				IFluidHandler cap = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, facing.getOpposite());
+				if (cap == null)
+					cap = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, null);
 				if (cap != null) {
 					ListTag tanks = new ListTag();
 					for (int i = 0; i < cap.getTanks() && (i + extraLines) < maxLines; i++) {
 						FluidStack contents = cap.getFluidInTank(i);
-						CompoundTag tank = (CompoundTag) contents.save(registries);
+						CompoundTag tank = (CompoundTag) contents.saveOptional(registries);
 						tank.putInt("capacity", cap.getTankCapacity(i));
 
 						tanks.add(tank);

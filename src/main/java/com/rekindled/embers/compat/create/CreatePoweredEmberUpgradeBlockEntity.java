@@ -1,8 +1,12 @@
 package com.rekindled.embers.compat.create;
 
 import com.rekindled.embers.ConfigManager;
+import com.rekindled.embers.Embers;
 import com.rekindled.embers.RegistryManager;
 import com.rekindled.embers.api.capabilities.EmbersCapabilities;
+import com.rekindled.embers.api.tile.IExtraCapabilityInformation;
+import com.rekindled.embers.api.tile.IExtraDialInformation;
+import com.rekindled.embers.block.FluidDialBlock;
 import com.rekindled.embers.compat.legacy.LazyOptional;
 import com.rekindled.embers.compat.legacy.capabilities.Capability;
 import com.rekindled.embers.compat.legacy.capabilities.ForgeCapabilities;
@@ -32,7 +36,7 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 
 import java.util.List;
 
-public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity {
+public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity implements IExtraCapabilityInformation, IExtraDialInformation {
 	private final FluidTank fluidTank;
 	private final FluidTank gasTank;
 	private final ItemStackHandler paperInventory;
@@ -93,10 +97,16 @@ public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity {
 	}
 
 	public Direction getShaftSide() {
+		if (getBlockState().getBlock() instanceof CreatePoweredEmberUpgradeBlock block) {
+			return block.getShaftSide(getBlockState());
+		}
 		return getBlockState().getValue(CreatePoweredEmberUpgradeBlock.FACING);
 	}
 
 	public Direction getUpgradeSide() {
+		if (getBlockState().getBlock() instanceof CreatePoweredEmberUpgradeBlock block) {
+			return block.getUpgradeSide(getBlockState());
+		}
 		return getShaftSide().getOpposite();
 	}
 
@@ -242,6 +252,35 @@ public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity {
 
 	public boolean isMnemonicActive() {
 		return mnemonicActive;
+	}
+
+	@Override
+	public void addDialInformation(Direction facing, List<Component> information, String dialType) {
+		if (getUpgradeType() != CreatePoweredUpgradeType.MINI_BOILER || !FluidDialBlock.DIAL_TYPE.equals(dialType)) {
+			return;
+		}
+		information.clear();
+		information.add(FluidDialBlock.formatFluidStack(fluidTank.getFluid(), fluidTank.getCapacity()));
+		information.add(FluidDialBlock.formatFluidStack(gasTank.getFluid(), gasTank.getCapacity()));
+	}
+
+	@Override
+	public boolean hasCapabilityDescription(Capability<?> capability) {
+		return getUpgradeType() == CreatePoweredUpgradeType.MINI_BOILER && capability == ForgeCapabilities.FLUID_HANDLER;
+	}
+
+	@Override
+	public void addCapabilityDescription(List<Component> strings, Capability<?> capability, Direction facing) {
+		if (capability != ForgeCapabilities.FLUID_HANDLER || getUpgradeType() != CreatePoweredUpgradeType.MINI_BOILER) {
+			return;
+		}
+		if (facing == Direction.UP) {
+			strings.add(IExtraCapabilityInformation.formatCapability(EnumIOType.OUTPUT, Embers.MODID + ".tooltip.goggles.fluid",
+					Component.translatable(Embers.MODID + ".tooltip.goggles.fluid.steam")));
+		} else if (facing != getUpgradeSide()) {
+			strings.add(IExtraCapabilityInformation.formatCapability(EnumIOType.INPUT, Embers.MODID + ".tooltip.goggles.fluid",
+					Component.translatable(Embers.MODID + ".tooltip.goggles.fluid.water")));
+		}
 	}
 
 	private boolean isUpgradeProviderSide(Direction side) {

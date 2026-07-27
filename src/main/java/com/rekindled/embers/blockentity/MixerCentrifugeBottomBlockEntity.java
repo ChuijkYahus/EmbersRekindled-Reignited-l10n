@@ -70,6 +70,7 @@ public class MixerCentrifugeBottomBlockEntity extends BlockEntity implements IMe
 	HashSet<Integer> soundsPlaying = new HashSet<>();
 	protected List<UpgradeContext> upgrades;
 	private double powerRatio;
+	private double workAccumulator;
 	public IMixingRecipe cachedRecipe = null;
 
 	public MixerCentrifugeBottomBlockEntity(BlockPos pPos, BlockState pBlockState) {
@@ -88,6 +89,7 @@ public class MixerCentrifugeBottomBlockEntity extends BlockEntity implements IMe
 		east.readFromNBT(registries, nbt.getCompound("eastTank"));
 		west.readFromNBT(registries, nbt.getCompound("westTank"));
 		isWorking = nbt.getBoolean("working");
+		workAccumulator = nbt.getDouble("workAccumulator");
 	}
 
 	@Override
@@ -98,6 +100,7 @@ public class MixerCentrifugeBottomBlockEntity extends BlockEntity implements IMe
 		nbt.put("eastTank", east.writeToNBT(registries, new CompoundTag()));
 		nbt.put("westTank", west.writeToNBT(registries, new CompoundTag()));
 		nbt.putBoolean("working", isWorking);
+		nbt.putDouble("workAccumulator", workAccumulator);
 	}
 
 	@Override
@@ -138,6 +141,7 @@ public class MixerCentrifugeBottomBlockEntity extends BlockEntity implements IMe
 	public static void serverTick(Level level, BlockPos pos, BlockState state, MixerCentrifugeBottomBlockEntity blockEntity) {
 		BlockEntity topEntity = level.getBlockEntity(pos.above());
 		boolean wasWorking = blockEntity.isWorking;
+		double previousAccumulator = blockEntity.workAccumulator;
 		blockEntity.isWorking = false;
 		if (topEntity instanceof MixerCentrifugeTopBlockEntity top) {
 			blockEntity.upgrades = UpgradeUtil.getUpgrades(level, pos.above(), Direction.values());
@@ -151,25 +155,40 @@ public class MixerCentrifugeBottomBlockEntity extends BlockEntity implements IMe
 				blockEntity.powerRatio = recipe.getPowerRatio();
 			else*/
 			blockEntity.powerRatio = 0;
-			double emberCost = UpgradeUtil.getTotalEmberConsumption(blockEntity, EMBER_COST, blockEntity.upgrades);
-			if (top.capability.getEmber() >= emberCost && blockEntity.cachedRecipe != null) {
-				boolean cancel = UpgradeUtil.doWork(blockEntity, blockEntity.upgrades);
-				if (!cancel) {
-					FluidTank tank = top.getTank();
-					FluidStack output = blockEntity.cachedRecipe.getOutput(context);
-					output = UpgradeUtil.transformOutput(blockEntity, output, blockEntity.upgrades);
-					if (output != null && !output.isEmpty() && tank.fill(output, FluidAction.SIMULATE) >= output.getAmount()) {
-						UpgradeUtil.throwEvent(blockEntity, new MachineRecipeEvent.Success<>(blockEntity, blockEntity.cachedRecipe), blockEntity.upgrades);
-						blockEntity.isWorking = true;
-						tank.fill(output, FluidAction.EXECUTE);
-						blockEntity.cachedRecipe.process(context);
-						UpgradeUtil.throwEvent(blockEntity, new EmberEvent(blockEntity, EmberEvent.EnumType.CONSUME, emberCost), blockEntity.upgrades);
-						top.capability.removeAmount(emberCost, true);
+			double speed = UpgradeUtil.getTotalSpeedModifier(blockEntity, blockEntity.upgrades);
+			if (blockEntity.cachedRecipe != null && Double.isFinite(speed) && speed > 0.0D) {
+				blockEntity.workAccumulator = Math.min(64.0D, blockEntity.workAccumulator + speed);
+				int workUnits = (int) Math.floor(blockEntity.workAccumulator);
+				if (workUnits > 0) {
+					blockEntity.workAccumulator -= workUnits;
+					double tickEmberCost = UpgradeUtil.getTotalEmberConsumption(blockEntity, EMBER_COST, blockEntity.upgrades);
+					double emberCostPerUnit = tickEmberCost / Math.max(1.0D, speed);
+					if (Double.isFinite(emberCostPerUnit) && emberCostPerUnit >= 0.0D
+							&& top.capability.getEmber() >= emberCostPerUnit
+							&& !UpgradeUtil.doWork(blockEntity, blockEntity.upgrades)) {
+						FluidTank tank = top.getTank();
+						for (int unit = 0; unit < workUnits && top.capability.getEmber() >= emberCostPerUnit; unit++) {
+							blockEntity.cachedRecipe = Misc.getRecipe(blockEntity.cachedRecipe, RegistryManager.MIXING.get(), context, level);
+							if (blockEntity.cachedRecipe == null) {
+								break;
+							}
+							FluidStack output = blockEntity.cachedRecipe.getOutput(context);
+							output = UpgradeUtil.transformOutput(blockEntity, output, blockEntity.upgrades);
+							if (output == null || output.isEmpty() || tank.fill(output, FluidAction.SIMULATE) < output.getAmount()) {
+								break;
+							}
+							UpgradeUtil.throwEvent(blockEntity, new MachineRecipeEvent.Success<>(blockEntity, blockEntity.cachedRecipe), blockEntity.upgrades);
+							tank.fill(output, FluidAction.EXECUTE);
+							blockEntity.cachedRecipe.process(context);
+							UpgradeUtil.throwEvent(blockEntity, new EmberEvent(blockEntity, EmberEvent.EnumType.CONSUME, emberCostPerUnit), blockEntity.upgrades);
+							top.capability.removeAmount(emberCostPerUnit, true);
+							blockEntity.isWorking = true;
+						}
 					}
 				}
 			}
 		}
-		if (wasWorking != blockEntity.isWorking)
+		if (wasWorking != blockEntity.isWorking || previousAccumulator != blockEntity.workAccumulator)
 			blockEntity.setChanged();
 	}
 

@@ -8,7 +8,6 @@ import org.joml.Vector3f;
 import com.rekindled.embers.ConfigManager;
 import com.rekindled.embers.Embers;
 import com.rekindled.embers.RegistryManager;
-import com.rekindled.embers.api.capabilities.EmbersCapabilities;
 import com.rekindled.embers.api.tile.IExtraCapabilityInformation;
 import com.rekindled.embers.particle.VaporParticleOptions;
 import com.rekindled.embers.util.Misc;
@@ -187,9 +186,6 @@ public class MelterTopBlockEntity extends OpenTankBlockEntity implements IExtraC
 		if (!this.isRemoved() && cap == ForgeCapabilities.ITEM_HANDLER) {
 			return ForgeCapabilities.ITEM_HANDLER.orEmpty(cap, holder);
 		}
-		if (!this.isRemoved() && cap == EmbersCapabilities.EMBER_CAPABILITY && level != null && level.getBlockEntity(worldPosition.below()) instanceof MelterBottomBlockEntity bottom) {
-			return bottom.getCapability(cap, side);
-		}
 		return super.getCapability(cap, side);
 	}
 
@@ -214,13 +210,11 @@ public class MelterTopBlockEntity extends OpenTankBlockEntity implements IExtraC
 
 	@Override
 	public boolean hasCapabilityDescription(Capability<?> capability) {
-		return capability == EmbersCapabilities.EMBER_CAPABILITY || capability == ForgeCapabilities.FLUID_HANDLER || capability == ForgeCapabilities.ITEM_HANDLER;
+		return capability == ForgeCapabilities.FLUID_HANDLER || capability == ForgeCapabilities.ITEM_HANDLER;
 	}
 
 	@Override
 	public void addCapabilityDescription(List<Component> strings, Capability<?> capability, Direction facing) {
-		if (capability == EmbersCapabilities.EMBER_CAPABILITY)
-			strings.add(IExtraCapabilityInformation.formatCapability(EnumIOType.INPUT, Embers.MODID + ".tooltip.goggles.ember", null));
 		if (capability == ForgeCapabilities.ITEM_HANDLER)
 			strings.add(IExtraCapabilityInformation.formatCapability(EnumIOType.INPUT, Embers.MODID + ".tooltip.goggles.item", null));
 		if (capability == ForgeCapabilities.FLUID_HANDLER)

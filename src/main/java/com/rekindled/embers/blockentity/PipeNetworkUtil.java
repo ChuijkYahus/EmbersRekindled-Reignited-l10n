@@ -14,6 +14,7 @@ import javax.annotation.Nullable;
 
 import com.rekindled.embers.ConfigManager;
 import com.rekindled.embers.api.tile.IFluidPipePriority;
+import com.rekindled.embers.compat.create.CreateCompat;
 import com.rekindled.embers.compat.legacy.capabilities.ForgeCapabilities;
 import com.rekindled.embers.compat.sublevel.SubLevelCompat;
 import com.rekindled.embers.util.CapabilityCompat;
@@ -23,6 +24,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
@@ -55,14 +57,19 @@ public final class PipeNetworkUtil {
 		}
 		ItemStack remainder = stack.copy();
 		for (ItemTarget target : targets) {
+			if (!pathAcceptsItem(target.path(), remainder)) {
+				continue;
+			}
 			ItemStack nextRemainder = insertItem(target.handler(), remainder, true);
 			if (nextRemainder.getCount() == remainder.getCount()) {
 				continue;
 			}
 			if (!simulate) {
 				nextRemainder = insertItem(target.handler(), remainder, false);
-				if (nextRemainder.getCount() < remainder.getCount()) {
+				int transferred = remainder.getCount() - nextRemainder.getCount();
+				if (transferred > 0) {
 					markPath(target.path());
+					notifyDisplayLinks(target.path(), transferred);
 				}
 			}
 			remainder = nextRemainder;
@@ -96,6 +103,7 @@ public final class PipeNetworkUtil {
 				accepted = target.handler().fill(stack.copyWithAmount(Math.min(accepted, remaining)), FluidAction.EXECUTE);
 				if (accepted > 0) {
 					markPath(target.path());
+					notifyDisplayLinks(target.path(), accepted);
 				}
 			}
 			filled += Math.min(accepted, remaining);
@@ -113,7 +121,8 @@ public final class PipeNetworkUtil {
 			BlockEntity neighbor = SubLevelCompat.findAdjacent(pipe, direction);
 			IItemHandler handler = getAdjacentItemHandler(pipe, direction, neighbor);
 			if (handler != null) {
-				targets.add(new ItemTarget(handler, priority(neighbor, direction.getOpposite()), List.copyOf(path)));
+				List<PipeStep> targetPath = List.copyOf(path);
+				targets.add(new ItemTarget(handler, itemRoutePriority(neighbor, direction.getOpposite(), targetPath), targetPath));
 			}
 		});
 		targets.sort(Comparator.comparingInt(ItemTarget::priority).thenComparingInt(target -> target.path().size()));
@@ -284,6 +293,25 @@ public final class PipeNetworkUtil {
 		return PipeBlockEntityBase.PRIORITY_BLOCK;
 	}
 
+	private static int itemRoutePriority(@Nullable BlockEntity endpoint, Direction side, List<PipeStep> path) {
+		int priority = priority(endpoint, side);
+		for (PipeStep step : path) {
+			if (step.pipe() instanceof IItemPipePriority pipePriority) {
+				priority = Math.min(priority, pipePriority.getPriority(step.direction()));
+			}
+		}
+		return priority;
+	}
+
+	private static boolean pathAcceptsItem(List<PipeStep> path, ItemStack stack) {
+		for (PipeStep step : path) {
+			if (step.pipe() instanceof ItemTransferBlockEntity transfer && !transfer.acceptsItem(stack)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private static ItemStack insertItem(IItemHandler handler, ItemStack stack, boolean simulate) {
 		ItemStack remainder = stack.copy();
 		for (int slot = 0; slot < handler.getSlots() && !remainder.isEmpty(); slot++) {
@@ -308,6 +336,15 @@ public final class PipeNetworkUtil {
 				pipe.syncCloggedFlag = true;
 			}
 			pipe.setChanged();
+		}
+	}
+
+	private static void notifyDisplayLinks(List<PipeStep> path, int amount) {
+		if (amount <= 0 || !ModList.get().isLoaded("create")) {
+			return;
+		}
+		for (PipeStep step : path) {
+			CreateCompat.notifyPipeTransfer(step.pipe(), amount);
 		}
 	}
 

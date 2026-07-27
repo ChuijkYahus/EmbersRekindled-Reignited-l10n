@@ -12,9 +12,9 @@ public class CreatePoweredEmberUpgradeVisual extends OrientedRotatingVisual<Crea
 
 	public CreatePoweredEmberUpgradeVisual(VisualizationContext context, CreatePoweredEmberUpgradeBlockEntity blockEntity, float partialTick) {
 		super(context, blockEntity, partialTick, blockEntity.getUpgradeType() == CreatePoweredUpgradeType.CATALYTIC_PLUG ? Direction.UP : Direction.SOUTH,
-				blockEntity.getBlockState().getValue(CreatePoweredEmberUpgradeBlock.FACING),
+				blockEntity.getShaftSide(),
 				Models.partial(blockEntity.getUpgradeType() == CreatePoweredUpgradeType.CATALYTIC_PLUG ? AllPartialModels.SHAFT : AllPartialModels.SHAFT_HALF));
-		Direction facing = blockEntity.getBlockState().getValue(CreatePoweredEmberUpgradeBlock.FACING);
+		Direction facing = blockEntity.getShaftSide();
 		if (blockEntity.getUpgradeType() != CreatePoweredUpgradeType.CATALYTIC_PLUG) {
 			rotatingModel.nudge(facing.getStepX() * SHAFT_OUTSET, facing.getStepY() * SHAFT_OUTSET, facing.getStepZ() * SHAFT_OUTSET);
 		}

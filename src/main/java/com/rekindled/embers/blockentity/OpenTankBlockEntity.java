@@ -30,13 +30,16 @@ public abstract class OpenTankBlockEntity extends FluidHandlerBlockEntity {
 		if (nbt.contains("lastEscaped")) {
 			lastEscaped = FluidStack.parseOptional(registries, nbt.getCompound("lastEscaped"));
 			lastEscapedTickServer = nbt.getLong("lastEscapedTick");
+		} else {
+			lastEscaped = null;
+			lastEscapedTickServer = 0;
 		}
 	}
 
 	@Override
 	public void saveAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
 		super.saveAdditional(nbt, registries);
-		if (lastEscaped != null) {
+		if (lastEscaped != null && !lastEscaped.isEmpty()) {
 			nbt.put("lastEscaped", lastEscaped.save(registries));
 			nbt.putLong("lastEscapedTick", lastEscapedTickServer);
 		}
@@ -45,8 +48,8 @@ public abstract class OpenTankBlockEntity extends FluidHandlerBlockEntity {
 	@Override
 	public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
 		CompoundTag nbt = super.getUpdateTag(registries);
-		tank.writeToNBT(registries, nbt);
-		if (lastEscaped != null) {
+		nbt.put("Fluid", tank.getFluid().saveOptional(registries));
+		if (lastEscaped != null && !lastEscaped.isEmpty()) {
 			nbt.put("lastEscaped", lastEscaped.save(registries));
 			nbt.putLong("lastEscapedTick", lastEscapedTickServer);
 		}

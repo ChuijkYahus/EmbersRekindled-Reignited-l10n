@@ -46,7 +46,7 @@ public class CreatePoweredEmberUpgradeRenderer extends KineticBlockEntityRendere
 
 	@Override
 	protected SuperByteBuffer getRotatedModel(CreatePoweredEmberUpgradeBlockEntity blockEntity, BlockState state) {
-		Direction facing = blockEntity.getBlockState().getValue(CreatePoweredEmberUpgradeBlock.FACING);
+		Direction facing = blockEntity.getShaftSide();
 		if (blockEntity.getUpgradeType() == CreatePoweredUpgradeType.CATALYTIC_PLUG) {
 			return super.getRotatedModel(blockEntity, state);
 		}

@@ -28,17 +28,25 @@ public class CreatePoweredEmberUpgradeBlock extends DirectionalKineticBlock impl
 	}
 
 	public Direction getUpgradeSide(BlockState state) {
-		return state.getValue(FACING).getOpposite();
+		Direction facing = state.getValue(FACING);
+		if (upgradeType == CreatePoweredUpgradeType.MINI_BOILER) {
+			return facing.getAxis().isHorizontal() ? facing : Direction.NORTH;
+		}
+		return facing.getOpposite();
+	}
+
+	public Direction getShaftSide(BlockState state) {
+		return upgradeType == CreatePoweredUpgradeType.MINI_BOILER ? Direction.DOWN : state.getValue(FACING);
 	}
 
 	@Override
 	public boolean hasShaftTowards(LevelReader level, BlockPos pos, BlockState state, Direction face) {
-		return face == state.getValue(FACING);
+		return face == getShaftSide(state);
 	}
 
 	@Override
 	public Direction.Axis getRotationAxis(BlockState state) {
-		return state.getValue(FACING).getAxis();
+		return getShaftSide(state).getAxis();
 	}
 
 	@Override
@@ -52,7 +60,23 @@ public class CreatePoweredEmberUpgradeBlock extends DirectionalKineticBlock impl
 		if (!CreateCompat.experimentalMechanicsEnabled()) {
 			return null;
 		}
+		if (upgradeType == CreatePoweredUpgradeType.MINI_BOILER) {
+			Direction upgradeSide = context.getClickedFace().getAxis().isHorizontal()
+					? context.getClickedFace().getOpposite()
+					: context.getHorizontalDirection();
+			return defaultBlockState().setValue(FACING, upgradeSide);
+		}
 		return super.getStateForPlacement(context);
+	}
+
+	@Override
+	public BlockState getRotatedBlockState(BlockState originalState, Direction targetedFace) {
+		if (upgradeType != CreatePoweredUpgradeType.MINI_BOILER) {
+			return super.getRotatedBlockState(originalState, targetedFace);
+		}
+		Direction facing = originalState.getValue(FACING);
+		Direction rotated = facing.getAxis().isHorizontal() ? facing.getClockWise(Direction.Axis.Y) : Direction.NORTH;
+		return originalState.setValue(FACING, rotated);
 	}
 
 	@Override

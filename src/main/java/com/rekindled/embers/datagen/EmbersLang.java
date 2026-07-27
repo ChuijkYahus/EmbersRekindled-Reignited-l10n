@@ -453,6 +453,9 @@ public class EmbersLang extends LanguageProvider {
 		add(Embers.MODID + ".tooltip.craft_lens_1", "Check the §eAncient Codex§r for more §einformation§r.");
 
 
+		add(Embers.MODID + ".display_source.accumulate_fluids", "Accumulated Fluid");
+		add(Embers.MODID + ".display_source.fluid_throughput", "Fluid Throughput");
+
 		//jei stuff
 		add(Embers.MODID + ".jei.recipe.boring", "Boring");
 		add(Embers.MODID + ".jei.recipe.excavation", "Excavation");

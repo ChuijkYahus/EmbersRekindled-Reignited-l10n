@@ -7,16 +7,19 @@ import com.rekindled.embers.recipe.IDawnstoneAnvilRecipe;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
-public class DawnstoneAnvilCategory implements IRecipeCategory<IDawnstoneAnvilRecipe> {
+public class DawnstoneAnvilCategory implements IRecipeCategory<RecipeHolder<IDawnstoneAnvilRecipe>> {
 
 	private final IDrawable background;
 	private final IDrawable icon;
@@ -29,7 +32,7 @@ public class DawnstoneAnvilCategory implements IRecipeCategory<IDawnstoneAnvilRe
 	}
 
 	@Override
-	public RecipeType<IDawnstoneAnvilRecipe> getRecipeType() {
+	public RecipeType<RecipeHolder<IDawnstoneAnvilRecipe>> getRecipeType() {
 		return JEIPlugin.DAWNSTONE_ANVIL;
 	}
 
@@ -39,8 +42,13 @@ public class DawnstoneAnvilCategory implements IRecipeCategory<IDawnstoneAnvilRe
 	}
 
 	@Override
-	public IDrawable getBackground() {
-		return background;
+	public int getWidth() {
+		return 110;
+	}
+
+	@Override
+	public int getHeight() {
+		return 58;
 	}
 
 	@Override
@@ -49,9 +57,22 @@ public class DawnstoneAnvilCategory implements IRecipeCategory<IDawnstoneAnvilRe
 	}
 
 	@Override
-	public void setRecipe(IRecipeLayoutBuilder builder, IDawnstoneAnvilRecipe recipe, IFocusGroup focuses) {
-		builder.addSlot(RecipeIngredientRole.INPUT, 22, 19).addItemStacks(recipe.getDisplayInputTop());
-		builder.addSlot(RecipeIngredientRole.INPUT, 22, 37).addItemStacks(recipe.getDisplayInputBottom());
-		builder.addSlot(RecipeIngredientRole.OUTPUT, 77, 28).addItemStacks(recipe.getDisplayOutput());
+	public void draw(RecipeHolder<IDawnstoneAnvilRecipe> recipe, IRecipeSlotsView recipeSlotsView,
+			GuiGraphics guiGraphics, double mouseX, double mouseY) {
+		background.draw(guiGraphics);
+	}
+
+	@Override
+	public void setRecipe(IRecipeLayoutBuilder builder, RecipeHolder<IDawnstoneAnvilRecipe> holder, IFocusGroup focuses) {
+		IDawnstoneAnvilRecipe recipe = holder.value();
+		if (!recipe.getDisplayInputTop().isEmpty()) {
+			builder.addSlot(RecipeIngredientRole.INPUT, 22, 19).addItemStacks(recipe.getDisplayInputTop());
+		}
+		if (!recipe.getDisplayInputBottom().isEmpty()) {
+			builder.addSlot(RecipeIngredientRole.INPUT, 22, 37).addItemStacks(recipe.getDisplayInputBottom());
+		}
+		if (!recipe.getDisplayOutput().isEmpty()) {
+			builder.addSlot(RecipeIngredientRole.OUTPUT, 77, 28).addItemStacks(recipe.getDisplayOutput());
+		}
 	}
 }

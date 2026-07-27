@@ -12,6 +12,7 @@ import com.rekindled.embers.ConfigManager;
 import com.rekindled.embers.api.capabilities.EmbersCapabilities;
 import com.rekindled.embers.api.power.IEmberCapability;
 import com.rekindled.embers.api.tile.IExtraDialInformation;
+import com.rekindled.embers.block.DialBaseBlock;
 import com.rekindled.embers.block.EmberDialBlock;
 import com.rekindled.embers.block.FluidDialBlock;
 import com.rekindled.embers.block.ItemDialBlock;
@@ -28,8 +29,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.energy.IEnergyStorage;
@@ -51,6 +54,48 @@ public final class ComparatorSignalUtil {
 		return getSignal(blockEntity, null);
 	}
 
+	public static int getDialSignal(Level level, BlockPos sourcePos, Direction side, String dialType) {
+		BlockEntity blockEntity = level.getBlockEntity(sourcePos);
+		if (blockEntity == null || blockEntity.isRemoved()) {
+			return 0;
+		}
+		if (FluidDialBlock.DIAL_TYPE.equals(dialType)) {
+			IFluidHandler fluids = findFluidHandler(blockEntity, side);
+			if (fluids == null || fluids.getTanks() == 0) {
+				return 0;
+			}
+			long amount = 0;
+			long capacity = 0;
+			for (int tank = 0; tank < fluids.getTanks(); tank++) {
+				amount += fluids.getFluidInTank(tank).getAmount();
+				capacity += Math.max(0, fluids.getTankCapacity(tank));
+			}
+			return customize(blockEntity, side, scale(amount, capacity), dialType);
+		}
+		if (ItemDialBlock.DIAL_TYPE.equals(dialType)) {
+			IItemHandler items = findItemHandler(blockEntity, side);
+			if (items == null || items.getSlots() == 0) {
+				return 0;
+			}
+			long amount = 0;
+			long capacity = 0;
+			for (int slot = 0; slot < items.getSlots(); slot++) {
+				ItemStack stack = items.getStackInSlot(slot);
+				amount += stack.getCount();
+				capacity += Math.max(0, Math.min(items.getSlotLimit(slot), stack.isEmpty() ? items.getSlotLimit(slot) : stack.getMaxStackSize()));
+			}
+			return customize(blockEntity, side, scale(amount, capacity), dialType);
+		}
+		if (EmberDialBlock.DIAL_TYPE.equals(dialType)) {
+			IEmberCapability ember = findEmberCapability(blockEntity, side);
+			if (ember == null || ember.getEmberCapacity() <= 0) {
+				return 0;
+			}
+			return customize(blockEntity, side, scale(ember.getEmber(), ember.getEmberCapacity()), dialType);
+		}
+		return 0;
+	}
+
 	public static void notifyOutputChanged(BlockEntity source) {
 		if (!(source.getLevel() instanceof ServerLevel level)) {
 			return;
@@ -64,6 +109,7 @@ public final class ComparatorSignalUtil {
 		if (sourceSignalChanged) {
 			notifyMultiblockEdges(level, sourcePos);
 		}
+		notifyAttachedDials(level, sourcePos);
 
 		ArrayDeque<BlockPos> pending = new ArrayDeque<>();
 		Set<BlockPos> visited = new HashSet<>();
@@ -80,9 +126,28 @@ public final class ComparatorSignalUtil {
 				BlockEntity blockEntity = level.getBlockEntity(adjacent);
 				if (blockEntity instanceof MechanicalCoreBlockEntity) {
 					notifyIfChanged(level, blockEntity);
+					notifyAttachedDials(level, adjacent);
 					pending.addLast(adjacent);
 				}
 			}
+		}
+	}
+
+	private static void notifyAttachedDials(ServerLevel level, BlockPos sourcePos) {
+		for (Direction direction : Direction.values()) {
+			BlockPos dialPos = sourcePos.relative(direction);
+			BlockState dialState = level.getBlockState(dialPos);
+			if (!(dialState.getBlock() instanceof DialBaseBlock dial)
+					|| !dialState.hasProperty(BlockStateProperties.FACING)
+					|| dialState.getValue(BlockStateProperties.FACING) != direction) {
+				continue;
+			}
+			int signal = dial.getAnalogOutputSignal(dialState, level, dialPos);
+			if (dialState.getValue(BlockStateProperties.POWER) == signal) {
+				continue;
+			}
+			level.setBlock(dialPos, dialState.setValue(BlockStateProperties.POWER, signal), Block.UPDATE_CLIENTS);
+			level.updateNeighbourForOutputSignal(dialPos, dial);
 		}
 	}
 
