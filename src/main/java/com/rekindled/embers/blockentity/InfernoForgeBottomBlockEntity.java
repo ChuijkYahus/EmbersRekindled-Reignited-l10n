@@ -69,6 +69,7 @@ public class InfernoForgeBottomBlockEntity extends BlockEntity implements IExtra
 	};
 	static Random random = new Random();
 	public int progress = 0;
+	private double progressRemainder;
 	public double emberValue = 0;
 	public IEmberActivationRecipe cachedEmberRecipe = null;
 
@@ -88,6 +89,7 @@ public class InfernoForgeBottomBlockEntity extends BlockEntity implements IExtra
 		super.loadAdditional(nbt, registries);
 		capability.deserializeNBT(nbt);
 		progress = nbt.getInt("progress");
+		progressRemainder = nbt.getDouble("progressRemainder");
 	}
 
 	@Override
@@ -95,6 +97,7 @@ public class InfernoForgeBottomBlockEntity extends BlockEntity implements IExtra
 		super.saveAdditional(nbt, registries);
 		capability.writeToNBT(nbt);
 		nbt.putInt("progress", progress);
+		nbt.putDouble("progressRemainder", progressRemainder);
 	}
 
 	@Override
@@ -102,6 +105,7 @@ public class InfernoForgeBottomBlockEntity extends BlockEntity implements IExtra
 		CompoundTag nbt = super.getUpdateTag(registries);
 		capability.writeToNBT(nbt);
 		nbt.putInt("progress", progress);
+		nbt.putDouble("progressRemainder", progressRemainder);
 		return nbt;
 	}
 
@@ -162,7 +166,7 @@ public class InfernoForgeBottomBlockEntity extends BlockEntity implements IExtra
 		boolean cancel = UpgradeUtil.doWork(blockEntity, blockEntity.upgrades);
 		double emberCost = UpgradeUtil.getTotalEmberConsumption(blockEntity, EMBER_COST, blockEntity.upgrades);
 		if (cancel || blockEntity.capability.getEmber() < emberCost) {
-			blockEntity.progress = 0;
+			blockEntity.resetProgress();
 			blockEntity.setChanged();
 			if (level.getBlockEntity(pos.above()) instanceof InfernoForgeTopBlockEntity hatch) {
 				hatch.setOpen(true, level.getGameTime());
@@ -171,18 +175,18 @@ public class InfernoForgeBottomBlockEntity extends BlockEntity implements IExtra
 			return;
 		}
 		UpgradeUtil.throwEvent(blockEntity, new EmberEvent(blockEntity, EmberEvent.EnumType.CONSUME, emberCost), blockEntity.upgrades);
-		blockEntity.progress -= 1 * UpgradeUtil.getTotalSpeedModifier(blockEntity, blockEntity.upgrades);
+		blockEntity.advanceProgress(UpgradeUtil.getTotalSpeedModifier(blockEntity, blockEntity.upgrades));
 		blockEntity.capability.removeAmount(emberCost, true);
 		List<ItemEntity> items = blockEntity.getValidItems();
 		for (ItemEntity e : items) {
 			e.setExtendedLifetime();
 			e.setPickUpDelay(20);
 		}
-		if (blockEntity.progress != 0) {
+		if (blockEntity.progress > 0) {
 			return;
 		}
 		if (items.isEmpty()) {
-			blockEntity.progress = 0;
+			blockEntity.resetProgress();
 			blockEntity.setChanged();
 			return;
 		}
@@ -206,7 +210,7 @@ public class InfernoForgeBottomBlockEntity extends BlockEntity implements IExtra
 					AugmentUtil.setHeat(stack, 0);
 					AugmentUtil.setLevel(stack, AugmentUtil.getLevel(stack) + 1);
 					item.setItem(stack);
-					blockEntity.progress = 0;
+					blockEntity.resetProgress();
 					forgeSuccess = true;
 				}
 		}
@@ -227,11 +231,30 @@ public class InfernoForgeBottomBlockEntity extends BlockEntity implements IExtra
 		blockEntity.setChanged();
 	}
 
+	private void advanceProgress(double speed) {
+		progressRemainder += Math.max(speed, 0.0D);
+		int completedTicks = (int) Math.floor(progressRemainder);
+		if (completedTicks <= 0) {
+			return;
+		}
+		progress = Math.max(0, progress - completedTicks);
+		progressRemainder -= completedTicks;
+		if (progress == 0) {
+			progressRemainder = 0.0D;
+		}
+	}
+
+	private void resetProgress() {
+		progress = 0;
+		progressRemainder = 0.0D;
+	}
+
 	public void updateProgress() {
 		if (progress != 0) return;
 		List<ItemEntity> items = getValidItems();
 		if (!items.isEmpty()) {
 			progress = PROCESS_TIME;
+			progressRemainder = 0.0D;
 			level.playSound(null, worldPosition, EmbersSounds.INFERNO_FORGE_START.get(), SoundSource.BLOCKS, 1.0f, 1.0f);
 			setChanged();
 		}

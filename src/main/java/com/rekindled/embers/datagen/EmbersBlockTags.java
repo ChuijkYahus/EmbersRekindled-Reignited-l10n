@@ -103,7 +103,7 @@ public class EmbersBlockTags extends BlockTagsProvider {
 	public static final TagKey<Block> BRONZE_BLOCK = BlockTags.create(ResourceLocation.fromNamespaceAndPath("forge", "storage_blocks/bronze"));
 	public static final TagKey<Block> NICKEL_BLOCK = BlockTags.create(ResourceLocation.fromNamespaceAndPath("forge", "storage_blocks/nickel"));
 	public static final TagKey<Block> TIN_BLOCK = BlockTags.create(ResourceLocation.fromNamespaceAndPath("forge", "storage_blocks/tin"));
-	public static final TagKey<Block> ALUMINUM_BLOCK = BlockTags.create(ResourceLocation.fromNamespaceAndPath("forge", "storage_blocks/aluminium"));
+	public static final TagKey<Block> ALUMINUM_BLOCK = BlockTags.create(ResourceLocation.fromNamespaceAndPath("c", "storage_blocks/aluminum"));
 	public static final TagKey<Block> ELECTRUM_BLOCK = BlockTags.create(ResourceLocation.fromNamespaceAndPath("forge", "storage_blocks/electrum"));
 
 	//compat

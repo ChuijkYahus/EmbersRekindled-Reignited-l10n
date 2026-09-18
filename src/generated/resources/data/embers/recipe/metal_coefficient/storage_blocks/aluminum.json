@@ -1,13 +1,13 @@
 {
   "type": "embers:metal_coefficient",
-  "block_tag": "c:storage_blocks/aluminium",
+  "block_tag": "c:storage_blocks/aluminum",
   "coefficient": 2.85,
   "neoforge:conditions": [
     {
       "type": "neoforge:not",
       "value": {
         "type": "neoforge:tag_empty",
-        "tag": "c:storage_blocks/aluminium"
+        "tag": "c:storage_blocks/aluminum"
       }
     }
   ]

@@ -1,5 +1,6 @@
 package com.rekindled.embers.mixin;
 
+import com.rekindled.embers.ConfigManager;
 import com.rekindled.embers.compat.create.EmberFueledBlazeBurner;
 import com.rekindled.embers.util.EmberInventoryUtil;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
@@ -21,6 +22,9 @@ public abstract class CreateBlazeBurnerBlockInteractionMixin {
 	@Inject(method = "useItemOn", at = @At("RETURN"), cancellable = true)
 	private void embers$fuelWithStoredEmber(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player,
 			InteractionHand hand, BlockHitResult hitResult, CallbackInfoReturnable<ItemInteractionResult> cir) {
+		if (!ConfigManager.blazeBurnerIntegrationEnabled()) {
+			return;
+		}
 		if (cir.getReturnValue() != ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION || !stack.isEmpty()) {
 			return;
 		}

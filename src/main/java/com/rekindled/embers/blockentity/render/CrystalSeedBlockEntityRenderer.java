@@ -46,6 +46,7 @@ public class CrystalSeedBlockEntityRenderer implements BlockEntityRenderer<Cryst
 			poseStack.mulPose(Axis.XP.rotationDegrees(-15.0f*(float)Math.sin(Math.toRadians(2.5f*(blockEntity.ticksExisted+partialTick)))));
 
 			float oneAng = 360f/blockEntity.willSpawn.length;
+			float normalizedSize = (float) (blockEntity.size / 1000.0D);
 			Random crystalRandom = new Random(blockEntity.getBlockPos().asLong());
 			for (int i = 0; i < blockEntity.willSpawn.length; i += 1) {
 				if (blockEntity.willSpawn[i]) {
@@ -54,12 +55,12 @@ public class CrystalSeedBlockEntityRenderer implements BlockEntityRenderer<Cryst
 						distVariation += crystalRandom.nextFloat() * 0.5f;
 					float offX = distVariation * 0.4f * (float)Math.sin(Math.toRadians(oneAng*i+((float) blockEntity.ticksExisted+partialTick)*2.0f));
 					float offZ = distVariation * 0.4f * (float)Math.cos(Math.toRadians(oneAng*i+((float) blockEntity.ticksExisted+partialTick)*2.0f));
-					float texWidth = 0.125f*2*blockEntity.size/1000.0f;
-					float texHeight = 0.25f*2*blockEntity.size/1000.0f;
+					float texWidth = 0.125f*2*normalizedSize;
+					float texHeight = 0.25f*2*normalizedSize;
 					float texX = crystalRandom.nextFloat() * (1 - texWidth);
 					float texY = crystalRandom.nextFloat() * (1 - texHeight);
 					float sizeVariation = 0.5f + crystalRandom.nextFloat() * 0.5f;
-					this.drawCrystal(buffer, poseStack.last().pose(), poseStack.last().normal(), offX, 0, offZ, (blockEntity.ticksExisted+partialTick)*2.0f, sizeVariation*0.4f*(blockEntity.size/1000.0f), texX, texY, texX+texWidth, texY+texHeight, packedLight, packedOverlay);
+					this.drawCrystal(buffer, poseStack.last().pose(), poseStack.last().normal(), offX, 0, offZ, (blockEntity.ticksExisted+partialTick)*2.0f, sizeVariation*0.4f*normalizedSize, texX, texY, texX+texWidth, texY+texHeight, packedLight, packedOverlay);
 				}
 			}
 

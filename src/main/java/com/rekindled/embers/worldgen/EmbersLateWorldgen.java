@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +42,8 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 public class EmbersLateWorldgen {
 	private static final int CHUNKS_PER_TICK = 2;
+	private static final int CHUNKS_CHECKED_PER_TICK = 8;
+	private static final int MAX_AUTOMATIC_PENDING_CHUNKS = 256;
 	private static final int ORE_NEIGHBOR_RADIUS = 1;
 	private static final int WORLDGEN_SALT = 193826405;
 	private static final TagKey<Block> LEAD_ORES = BlockTags.create(ResourceLocation.fromNamespaceAndPath("c", "ores/lead"));
@@ -66,7 +69,7 @@ public class EmbersLateWorldgen {
 	}
 
 	public static void onChunkLoad(ChunkEvent.Load event) {
-		if (!event.isNewChunk() || !(event.getLevel() instanceof ServerLevel level) || !isOverworld(level)) {
+		if (!event.isNewChunk() || ConfigManager.ORE_GENERATION.get() == ConfigManager.OreGenerationMode.NEVER || !(event.getLevel() instanceof ServerLevel level) || !isOverworld(level)) {
 			return;
 		}
 		ChunkPos pos = event.getChunk().getPos();
@@ -80,19 +83,26 @@ public class EmbersLateWorldgen {
 
 		List<QueuedChunk> batch = new ArrayList<>();
 		int generated = 0;
+		int checked = 0;
 		Iterator<Map.Entry<ServerLevel, Set<Long>>> levelIterator = PENDING_CHUNKS.entrySet().iterator();
-		while (levelIterator.hasNext() && generated < CHUNKS_PER_TICK) {
+		while (levelIterator.hasNext() && generated < CHUNKS_PER_TICK && checked < CHUNKS_CHECKED_PER_TICK) {
 			Map.Entry<ServerLevel, Set<Long>> entry = levelIterator.next();
 			ServerLevel level = entry.getKey();
 			Iterator<Long> chunkIterator = entry.getValue().iterator();
-			while (chunkIterator.hasNext() && generated < CHUNKS_PER_TICK) {
-				ChunkPos pos = new ChunkPos(chunkIterator.next());
+			List<Long> retry = new ArrayList<>();
+			while (chunkIterator.hasNext() && generated < CHUNKS_PER_TICK && checked < CHUNKS_CHECKED_PER_TICK) {
+				long packedPos = chunkIterator.next();
+				ChunkPos pos = new ChunkPos(packedPos);
+				chunkIterator.remove();
+				checked++;
 				if (isReadyForRetrogen(level, pos)) {
 					batch.add(new QueuedChunk(level, pos, consumeForce(level, pos)));
-					chunkIterator.remove();
 					generated++;
+				} else {
+					retry.add(packedPos);
 				}
 			}
+			entry.getValue().addAll(retry);
 			if (entry.getValue().isEmpty()) {
 				levelIterator.remove();
 				FORCED_CHUNKS.remove(level);
@@ -126,7 +136,11 @@ public class EmbersLateWorldgen {
 
 	private static boolean queueChunk(ServerLevel level, ChunkPos pos, boolean force) {
 		long packedPos = pos.toLong();
-		boolean added = PENDING_CHUNKS.computeIfAbsent(level, ignored -> new HashSet<>()).add(packedPos);
+		Set<Long> pending = PENDING_CHUNKS.computeIfAbsent(level, ignored -> new LinkedHashSet<>());
+		if (!force && pending.size() >= MAX_AUTOMATIC_PENDING_CHUNKS) {
+			return false;
+		}
+		boolean added = pending.add(packedPos);
 		if (force) {
 			FORCED_CHUNKS.computeIfAbsent(level, ignored -> new HashSet<>()).add(packedPos);
 		}

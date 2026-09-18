@@ -216,9 +216,9 @@ public class MiniBoilerBlockEntity extends PipeBlockEntityBase implements ISound
 			if (fluidBoiled > 0) {
 				//the recipe is responsible for draining boiled fluid
 				FluidStack gas = cachedRecipe.process(context, fluidBoiled);
-				if (gas != null) {
-					int leftover = gas.getAmount() - gasTank.fill(gas, FluidAction.EXECUTE);
-					if (ConfigManager.MINI_BOILER_CAN_EXPLODE.get() && leftover > 0 && !level.isClientSide()) {
+				if (gas != null && !gas.isEmpty()) {
+					gasTank.fill(gas, FluidAction.EXECUTE);
+					if (ConfigManager.MINI_BOILER_CAN_EXPLODE.get() && gasTank.getFluidAmount() >= gasTank.getCapacity() && !level.isClientSide()) {
 						explode();
 					}
 				}

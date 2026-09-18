@@ -164,7 +164,9 @@ public class HearthCoilBlockEntity extends BlockEntity implements ISoundControll
 		if (UpgradeUtil.doTick(blockEntity, blockEntity.upgrades))
 			return;
 
-		int heatedBlazeBurners = ModList.get().isLoaded("create") ? CreateBlazeBurnerHelper.countBurnersOnHearthCoil(level, pos) : 0;
+		int heatedBlazeBurners = ModList.get().isLoaded("create") && ConfigManager.blazeBurnerIntegrationEnabled()
+				? CreateBlazeBurnerHelper.countBurnersOnHearthCoil(level, pos)
+				: 0;
 		int superheatingBlazeBurners = heatedBlazeBurners > 0
 				? CreateBlazeBurnerHelper.countSuperheatingBurnersOnHearthCoil(level, pos, blockEntity.upgrades)
 				: 0;

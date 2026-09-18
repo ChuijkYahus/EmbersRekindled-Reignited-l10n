@@ -13,6 +13,7 @@ import com.rekindled.embers.compat.legacy.capabilities.ForgeCapabilities;
 import com.rekindled.embers.datagen.EmbersItemTags;
 import com.rekindled.embers.recipe.FluidHandlerContext;
 import com.rekindled.embers.recipe.IBoilingRecipe;
+import com.rekindled.embers.recipe.IGaseousFuelRecipe;
 import com.rekindled.embers.util.Misc;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 
@@ -45,6 +46,8 @@ public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity imp
 	private final LazyOptional<IFluidHandler> gasHolder;
 	private final LazyOptional<IItemHandler> itemHolder;
 	private IBoilingRecipe cachedBoilingRecipe;
+	private IGaseousFuelRecipe cachedGaseousFuelRecipe;
+	private int gaseousFuelBurnTime;
 	private int activeTicks;
 	private boolean mnemonicActive;
 
@@ -127,6 +130,10 @@ public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity imp
 			}
 			return side == null || side != getUpgradeSide() ? fluidTank : null;
 		}
+		if (getUpgradeType() == CreatePoweredUpgradeType.CATALYTIC_PLUG
+				|| getUpgradeType() == CreatePoweredUpgradeType.WILDFIRE_STIRLING) {
+			return side == null || side == getShaftSide() ? fluidTank : null;
+		}
 		return null;
 	}
 
@@ -161,6 +168,7 @@ public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity imp
 		tag.put("FluidTank", fluidTank.writeToNBT(registries, new CompoundTag()));
 		tag.put("GasTank", gasTank.writeToNBT(registries, new CompoundTag()));
 		tag.put("PaperInventory", paperInventory.serializeNBT(registries));
+		tag.putInt("GaseousFuelBurnTime", gaseousFuelBurnTime);
 		tag.putInt("ActiveTicks", activeTicks);
 		tag.putBoolean("MnemonicActive", mnemonicActive);
 	}
@@ -171,6 +179,7 @@ public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity imp
 		fluidTank.readFromNBT(registries, tag.getCompound("FluidTank"));
 		gasTank.readFromNBT(registries, tag.getCompound("GasTank"));
 		paperInventory.deserializeNBT(registries, tag.getCompound("PaperInventory"));
+		gaseousFuelBurnTime = tag.getInt("GaseousFuelBurnTime");
 		activeTicks = tag.getInt("ActiveTicks");
 		mnemonicActive = tag.getBoolean("MnemonicActive");
 	}
@@ -209,11 +218,50 @@ public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity imp
 		if (gas == null || gas.isEmpty()) {
 			return;
 		}
-		int leftover = gas.getAmount() - gasTank.fill(gas, FluidAction.EXECUTE);
-		if (ConfigManager.MINI_BOILER_CAN_EXPLODE.get() && leftover > 0 && !level.isClientSide()) {
+		gasTank.fill(gas, FluidAction.EXECUTE);
+		if (ConfigManager.MINI_BOILER_CAN_EXPLODE.get() && gasTank.getFluidAmount() >= gasTank.getCapacity() && !level.isClientSide()) {
 			level.explode(null, worldPosition.getX() + 0.5D, worldPosition.getY() + 0.5D, worldPosition.getZ() + 0.5D, 3.0F, Level.ExplosionInteraction.NONE);
 			level.removeBlock(worldPosition, false);
 		}
+	}
+
+	public double getGaseousFuelMultiplier() {
+		if (level == null || (getUpgradeType() != CreatePoweredUpgradeType.CATALYTIC_PLUG
+				&& getUpgradeType() != CreatePoweredUpgradeType.WILDFIRE_STIRLING)) {
+			return 1.0D;
+		}
+		FluidHandlerContext context = new FluidHandlerContext(fluidTank);
+		if (gaseousFuelBurnTime <= 0 || cachedGaseousFuelRecipe == null) {
+			cachedGaseousFuelRecipe = Misc.getRecipe(cachedGaseousFuelRecipe, RegistryManager.GASEOUS_FUEL.get(), context, level);
+		}
+		return cachedGaseousFuelRecipe == null ? 1.0D : cachedGaseousFuelRecipe.getPowerMultiplier(context);
+	}
+
+	public boolean consumeGaseousFuel(int ticks) {
+		if (ticks <= 0 || getGaseousFuelMultiplier() == 1.0D) {
+			return false;
+		}
+		gaseousFuelBurnTime -= ticks;
+		boolean consumed = gaseousFuelBurnTime >= 0;
+		FluidHandlerContext context = new FluidHandlerContext(fluidTank);
+		while (gaseousFuelBurnTime < 0) {
+			cachedGaseousFuelRecipe = Misc.getRecipe(cachedGaseousFuelRecipe, RegistryManager.GASEOUS_FUEL.get(), context, level);
+			if (cachedGaseousFuelRecipe == null || !cachedGaseousFuelRecipe.matches(context, level)) {
+				gaseousFuelBurnTime = 0;
+				return false;
+			}
+			int burnTime = cachedGaseousFuelRecipe.process(context, 1);
+			if (burnTime <= 0) {
+				gaseousFuelBurnTime = 0;
+				return false;
+			}
+			gaseousFuelBurnTime += burnTime;
+			consumed = true;
+		}
+		if (consumed) {
+			setChanged();
+		}
+		return consumed;
 	}
 
 	public boolean isActive() {
@@ -266,12 +314,24 @@ public class CreatePoweredEmberUpgradeBlockEntity extends KineticBlockEntity imp
 
 	@Override
 	public boolean hasCapabilityDescription(Capability<?> capability) {
-		return getUpgradeType() == CreatePoweredUpgradeType.MINI_BOILER && capability == ForgeCapabilities.FLUID_HANDLER;
+		return (getUpgradeType() == CreatePoweredUpgradeType.MINI_BOILER
+				|| getUpgradeType() == CreatePoweredUpgradeType.CATALYTIC_PLUG
+				|| getUpgradeType() == CreatePoweredUpgradeType.WILDFIRE_STIRLING)
+				&& capability == ForgeCapabilities.FLUID_HANDLER;
 	}
 
 	@Override
 	public void addCapabilityDescription(List<Component> strings, Capability<?> capability, Direction facing) {
-		if (capability != ForgeCapabilities.FLUID_HANDLER || getUpgradeType() != CreatePoweredUpgradeType.MINI_BOILER) {
+		if (capability != ForgeCapabilities.FLUID_HANDLER) {
+			return;
+		}
+		if (getUpgradeType() == CreatePoweredUpgradeType.CATALYTIC_PLUG
+				|| getUpgradeType() == CreatePoweredUpgradeType.WILDFIRE_STIRLING) {
+			strings.add(IExtraCapabilityInformation.formatCapability(EnumIOType.INPUT, Embers.MODID + ".tooltip.goggles.fluid",
+					Component.translatable(Embers.MODID + ".tooltip.goggles.fluid.steam")));
+			return;
+		}
+		if (getUpgradeType() != CreatePoweredUpgradeType.MINI_BOILER) {
 			return;
 		}
 		if (facing == Direction.UP) {

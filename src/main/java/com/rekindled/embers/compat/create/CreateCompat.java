@@ -251,7 +251,7 @@ public final class CreateCompat {
 		BuiltInRegistries.BLOCK_ENTITY_TYPE
 				.getOptional(ResourceLocation.fromNamespaceAndPath("create", "blaze_heater"))
 				.ifPresent(type -> event.registerBlockEntity(EmbersCapabilities.EMBER_BLOCK_CAPABILITY, type,
-						(blockEntity, side) -> blockEntity instanceof EmberFueledBlazeBurner emberBurner
+						(blockEntity, side) -> blazeBurnerIntegrationEnabled() && blockEntity instanceof EmberFueledBlazeBurner emberBurner
 								? emberBurner.embers$getEmberFuel()
 								: null));
 	}
@@ -272,6 +272,10 @@ public final class CreateCompat {
 		return ConfigManager.ENABLE_EXPERIMENTAL_CREATE_MECHANICS != null
 				&& ConfigManager.ENABLE_EXPERIMENTAL_CREATE_MECHANICS.get()
 				&& ModList.get().isLoaded("create");
+	}
+
+	public static boolean blazeBurnerIntegrationEnabled() {
+		return ConfigManager.blazeBurnerIntegrationEnabled() && ModList.get().isLoaded("create");
 	}
 
 	private static Map<CreatePoweredUpgradeType, DeferredBlock<CreatePoweredEmberUpgradeBlock>> registerCreatePoweredUpgradeBlocks() {

@@ -52,9 +52,9 @@ public class MechanicalPumpBottomBlockEntity extends BlockEntity implements IMec
 	};
 	public static final double EMBER_COST = 0.5;
 
-	public int progress;
-	public int totalProgress;
-	public int lastProgress;
+	public double progress;
+	public double totalProgress;
+	public double lastProgress;
 	private List<UpgradeContext> upgrades;
 
 	public MechanicalPumpBottomBlockEntity(BlockPos pPos, BlockState pBlockState) {
@@ -71,24 +71,24 @@ public class MechanicalPumpBottomBlockEntity extends BlockEntity implements IMec
 		super.loadAdditional(nbt, registries);
 		capability.deserializeNBT(nbt);
 		if (nbt.contains("progress"))
-			progress = nbt.getInt("progress");
-		totalProgress = nbt.getInt("totalProgress");
+			progress = nbt.getDouble("progress");
+		totalProgress = nbt.getDouble("totalProgress");
 	}
 
 	@Override
 	public void saveAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
 		super.saveAdditional(nbt, registries);
 		capability.writeToNBT(nbt);
-		nbt.putInt("progress", progress);
-		nbt.putInt("totalProgress", totalProgress);
+		nbt.putDouble("progress", progress);
+		nbt.putDouble("totalProgress", totalProgress);
 	}
 
 	@Override
 	public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
 		CompoundTag nbt = super.getUpdateTag(registries);
 		capability.writeToNBT(nbt);
-		nbt.putInt("progress", progress);
-		nbt.putInt("totalProgress", totalProgress);
+		nbt.putDouble("progress", progress);
+		nbt.putDouble("totalProgress", totalProgress);
 		return nbt;
 	}
 
@@ -113,12 +113,12 @@ public class MechanicalPumpBottomBlockEntity extends BlockEntity implements IMec
 		if (blockEntity.capability.getEmber() >= emberCost) {
 			boolean cancel = UpgradeUtil.doWork(blockEntity, blockEntity.upgrades);
 			if (!cancel) {
-				int speed = (int) UpgradeUtil.getTotalSpeedModifier(blockEntity, blockEntity.upgrades);
+				double speed = UpgradeUtil.getTotalSpeedModifier(blockEntity, blockEntity.upgrades);
 				blockEntity.progress += speed;
 				blockEntity.totalProgress += speed;
 				UpgradeUtil.throwEvent(blockEntity, new EmberEvent(blockEntity, EmberEvent.EnumType.CONSUME, emberCost), blockEntity.upgrades);
 				blockEntity.capability.removeAmount(emberCost, true);
-				if (blockEntity.progress > 400) {
+				while (blockEntity.progress >= 400.0D) {
 					blockEntity.progress -= 400;
 					/*boolean doContinue = true;
 					for (int r = 0; r < 6 && doContinue; r++) {
@@ -161,18 +161,18 @@ public class MechanicalPumpBottomBlockEntity extends BlockEntity implements IMec
 		return true;
 	}
 
-	public void playSound(int speed) {
+	public void playSound(double speed) {
 		float pitch;
 		SoundEvent sound;
-		if (speed >= 20) {
+		if (speed >= 20.0D) {
 			sound = EmbersSounds.PUMP_FAST.get();
-			pitch = speed / 20f;
-		} else if(speed >= 10) {
+			pitch = (float) (speed / 20.0D);
+		} else if(speed >= 10.0D) {
 			sound = EmbersSounds.PUMP_MID.get();
-			pitch = speed / 10f;
+			pitch = (float) (speed / 10.0D);
 		} else {
 			sound = EmbersSounds.PUMP_SLOW.get();
-			pitch = speed;
+			pitch = (float) speed;
 		}
 		level.playSound(null, worldPosition.above(), sound, SoundSource.BLOCKS, 1.0f, pitch);
 	}

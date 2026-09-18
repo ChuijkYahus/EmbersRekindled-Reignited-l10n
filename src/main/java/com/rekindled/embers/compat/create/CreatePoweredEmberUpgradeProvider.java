@@ -49,7 +49,9 @@ public class CreatePoweredEmberUpgradeProvider extends DefaultUpgradeProvider {
 	public double getSpeed(BlockEntity tile, double speed, int distance, int count) {
 		double efficiency = efficiency();
 		return switch (poweredTile().getUpgradeType()) {
-			case CATALYTIC_PLUG -> speed * kineticCatalystMultiplier(distance, count, efficiency);
+			case CATALYTIC_PLUG -> poweredTile().getGaseousFuelMultiplier() == 1.0D
+					? speed
+					: speed * kineticCatalystMultiplier(distance, count, efficiency);
 			default -> speed;
 		};
 	}
@@ -60,7 +62,11 @@ public class CreatePoweredEmberUpgradeProvider extends DefaultUpgradeProvider {
 			return false;
 		}
 		switch (poweredTile().getUpgradeType()) {
-			case CATALYTIC_PLUG, WILDFIRE_STIRLING -> poweredTile().setActive(21);
+			case CATALYTIC_PLUG, WILDFIRE_STIRLING -> {
+				if (poweredTile().consumeGaseousFuel(1)) {
+					poweredTile().setActive(21);
+				}
+			}
 			default -> {
 			}
 		}
@@ -71,8 +77,12 @@ public class CreatePoweredEmberUpgradeProvider extends DefaultUpgradeProvider {
 	public double transformEmberConsumption(BlockEntity tile, double ember, int distance, int count) {
 		double efficiency = efficiency();
 		return switch (poweredTile().getUpgradeType()) {
-			case CATALYTIC_PLUG -> ember * kineticCatalystMultiplier(distance, count, efficiency);
-			case WILDFIRE_STIRLING -> ember / kineticStirlingMultiplier(distance, count, efficiency);
+			case CATALYTIC_PLUG -> poweredTile().getGaseousFuelMultiplier() == 1.0D
+					? ember
+					: ember * kineticCatalystMultiplier(distance, count, efficiency);
+			case WILDFIRE_STIRLING -> poweredTile().getGaseousFuelMultiplier() == 1.0D
+					? ember
+					: ember / kineticStirlingMultiplier(distance, count, efficiency);
 			default -> ember;
 		};
 	}
@@ -82,7 +92,9 @@ public class CreatePoweredEmberUpgradeProvider extends DefaultUpgradeProvider {
 		if (poweredTile().getUpgradeType() != CreatePoweredUpgradeType.CATALYTIC_PLUG || !type.equals("fuel_consumption")) {
 			return value;
 		}
-		return value * kineticCatalystMultiplier(distance, count, efficiency());
+		return poweredTile().getGaseousFuelMultiplier() == 1.0D
+				? value
+				: value * kineticCatalystMultiplier(distance, count, efficiency());
 	}
 
 	@Override

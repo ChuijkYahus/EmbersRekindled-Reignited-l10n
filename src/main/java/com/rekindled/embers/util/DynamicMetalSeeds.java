@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
+import com.rekindled.embers.ConfigManager;
 import com.rekindled.embers.RegistryManager;
 import com.rekindled.embers.item.DynamicCrystalSeedBlockItem;
 
@@ -45,6 +46,9 @@ public final class DynamicMetalSeeds {
 	}
 
 	public static synchronized List<Variant> getVariants() {
+		if (!ConfigManager.dynamicMetalSeedsEnabled()) {
+			return List.of();
+		}
 		if (!dirty) {
 			return variants;
 		}

@@ -47,7 +47,9 @@ public class ConfigManager {
 	public static ConfigValue<Integer> HEARTH_COIL_MAX_COOK_TIME;
 	public static ConfigValue<Double> CREATE_BLAZE_BURNER_EMBER_COST;
 	public static ConfigValue<Double> CREATE_BLAZE_BURNER_SUPERHEAT_COST;
+	public static ConfigValue<Boolean> ENABLE_BLAZE_BURNER_INTEGRATION;
 	public static ConfigValue<Boolean> ENABLE_EXPERIMENTAL_CREATE_MECHANICS;
+	public static ConfigValue<Boolean> ENABLE_DYNAMIC_METAL_SEEDS;
 	public static ConfigValue<Integer> DAWNSTONE_ANVIL_MAX_HITS;
 	public static ConfigValue<Boolean> DAWNSTONE_TOOLS_USE_DURABILITY;
 	public static ConfigValue<Double> BLAZING_RAY_COST;
@@ -112,6 +114,14 @@ public class ConfigManager {
 
 	public static boolean consumeAlchemyItemsOnFailure() {
 		return ALCHEMY_CONSUME_ITEMS_ON_FAILURE == null || ALCHEMY_CONSUME_ITEMS_ON_FAILURE.get();
+	}
+
+	public static boolean blazeBurnerIntegrationEnabled() {
+		return ENABLE_BLAZE_BURNER_INTEGRATION == null || ENABLE_BLAZE_BURNER_INTEGRATION.get();
+	}
+
+	public static boolean dynamicMetalSeedsEnabled() {
+		return ENABLE_DYNAMIC_METAL_SEEDS == null || ENABLE_DYNAMIC_METAL_SEEDS.get();
 	}
 
 	public static void register(ModContainer container) {
@@ -180,6 +190,7 @@ public class ConfigManager {
 		ALCHEMY_CONSUME_ITEMS_ON_FAILURE = COMMON.comment("If true, failed alchemy consumes pedestal input items. If false, failed alchemy only consumes the Exchange Tablet item and turns it into the failure result.").define("alchemy.consume_items_on_failure", true);
 		CRYSTAL_SEED_USE_EXPERIMENTAL_SCALING = COMMON.comment("If true, crystal seeds use square-root level scaling for extra nugget drop roll segments instead of the original stepped scaling.").define("crystal_seed.use_experimental_scaling", true);
 		CRYSTAL_SEED_LEVEL_BONUS_SCALAR = COMMON.comment("Multiplier used by experimental crystal seed scaling. Extra roll segments are floor(sqrt(level * scalar)).").defineInRange("crystal_seed.level_bonus_scalar", 2.0, 0.0, 1024.0);
+		ENABLE_DYNAMIC_METAL_SEEDS = COMMON.comment("If true, discover metal crystal seeds from loaded c:ingots and c:nuggets tags. If false, only Embers' predefined crystal seeds are listed and craftable.").define("crystal_seed.enable_dynamic_metal_seeds", true);
 
 		HEARTH_COIL_EMBER_COST = COMMON.comment("The amount of ember consumed per tick.").define("hearth_coil.ember_cost", 1.0);
 		HEARTH_COIL_HEATING_SPEED = COMMON.comment("The amount of heat gained per tick when consuming ember.").define("hearth_coil.heating_speed", 1.0);
@@ -189,6 +200,7 @@ public class ConfigManager {
 		HEARTH_COIL_MAX_COOK_TIME = COMMON.comment("The time in ticks it takes to cook 1 item at the lowest heat.").define("hearth_coil.max_cook_time", 300);
 		CREATE_BLAZE_BURNER_EMBER_COST = COMMON.comment("The amount of ember a Create blaze burner consumes each tick while sustained by ember.").define("create.blaze_burner.ember_cost", 1.0);
 		CREATE_BLAZE_BURNER_SUPERHEAT_COST = COMMON.comment("The amount of ember a Create blaze burner consumes each tick while an Atmospheric Bellows or bellowed Hearth Coil is forcing it to superheat.").define("create.blaze_burner.superheat_cost", 8.0);
+		ENABLE_BLAZE_BURNER_INTEGRATION = COMMON.comment("Enables Embers fuel, Hearth Coil, Ember Funnel, and Atmospheric Bellows integration with Create blaze burners.").define("create.enable_blaze_burner_integration", true);
 		ENABLE_EXPERIMENTAL_CREATE_MECHANICS = COMMON.comment("Enables experimental Create-powered Embers machine upgrades and their recipes. Requires Create to be installed.").define("create.enable_experimental_create_mechanics", true);
 
 		DAWNSTONE_ANVIL_MAX_HITS = COMMON.comment("The amount of hits required to perform one recipe on a dawnstone anvil.").define("dawnstone_anvil.max_hits", 40);

@@ -103,7 +103,7 @@ public class EntropicEnumeratorBlock extends EmbersEntityBlock implements Simple
 	@Nullable
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext pContext) {
-		BlockState blockstate = this.defaultBlockState().setValue(BlockStateProperties.FACING, getPlacementFacing(pContext));
+		BlockState blockstate = this.defaultBlockState().setValue(BlockStateProperties.FACING, pContext.getClickedFace());
 		return blockstate.setValue(BlockStateProperties.WATERLOGGED, Boolean.valueOf(pContext.getLevel().getFluidState(pContext.getClickedPos()).getType() == Fluids.WATER));
 	}
 

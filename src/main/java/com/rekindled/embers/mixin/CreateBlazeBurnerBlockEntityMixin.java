@@ -79,6 +79,9 @@ public abstract class CreateBlazeBurnerBlockEntityMixin extends SmartBlockEntity
 
 	@Inject(method = "tick", at = @At("TAIL"))
 	private void embers$consumeStoredEmber(CallbackInfo ci) {
+		if (!ConfigManager.blazeBurnerIntegrationEnabled()) {
+			return;
+		}
 		embers$refreshEmberFuelState(false);
 	}
 
@@ -125,7 +128,7 @@ public abstract class CreateBlazeBurnerBlockEntityMixin extends SmartBlockEntity
 	@Override
 	@Unique
 	public void embers$refreshEmberFuelState(boolean playSound) {
-		if (level == null || level.isClientSide || isCreative) {
+		if (!ConfigManager.blazeBurnerIntegrationEnabled() || level == null || level.isClientSide || isCreative) {
 			return;
 		}
 		if (embers$kindledFromStoredFuel && activeFuel == BlazeBurnerBlockEntity.FuelType.NORMAL

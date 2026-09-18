@@ -43,8 +43,9 @@ public class CrystalSeedBlockEntity extends BlockEntity implements IEmberInjecta
 	public TagKey<Item> tag;
 	public int tintColor = 0xFFFFFF;
 	public boolean[] willSpawn;
-	public int size = 0;
+	public double size = 0.0D;
 	public int xp = 0;
+	private double fractionalExperience;
 	public static int bonusParts = 0;
 	public int ticksExisted = 0;
 	protected static Random random = new Random();
@@ -135,24 +136,27 @@ public class CrystalSeedBlockEntity extends BlockEntity implements IEmberInjecta
 	public void loadAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
 		super.loadAdditional(nbt, registries);
 		loadSpawnsFromString(nbt.getString("spawns"));
-		size = nbt.getInt("size");
+		size = nbt.getDouble("size");
 		xp = nbt.getInt("xp");
+		fractionalExperience = nbt.getDouble("fractionalExperience");
 	}
 
 	@Override
 	public void saveAdditional(CompoundTag nbt, HolderLookup.Provider registries) {
 		super.saveAdditional(nbt, registries);
 		nbt.putString("spawns", getSpawnString(willSpawn));
-		nbt.putInt("size", size);
+		nbt.putDouble("size", size);
 		nbt.putInt("xp", xp);
+		nbt.putDouble("fractionalExperience", fractionalExperience);
 	}
 
 	@Override
 	public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
 		CompoundTag nbt = super.getUpdateTag(registries);
 		nbt.putString("spawns", getSpawnString(willSpawn));
-		nbt.putInt("size", size);
+		nbt.putDouble("size", size);
 		nbt.putInt("xp", xp);
+		nbt.putDouble("fractionalExperience", fractionalExperience);
 		return nbt;
 	}
 
@@ -170,7 +174,7 @@ public class CrystalSeedBlockEntity extends BlockEntity implements IEmberInjecta
 		blockEntity.ticksExisted++;
 		blockEntity.refreshSpawnsIfSegmentCountChanged();
 		if (blockEntity.size > 1000) {
-			blockEntity.size = 0;
+			blockEntity.size = 0.0D;
 			ItemStack[] stacks = blockEntity.getNuggetDrops(blockEntity.willSpawn.length);
 			double oneAng = 360.0 / blockEntity.willSpawn.length;
 			for (int i = 0; i < blockEntity.willSpawn.length; i ++) {
@@ -218,10 +222,19 @@ public class CrystalSeedBlockEntity extends BlockEntity implements IEmberInjecta
 
 	@Override
 	public void inject(BlockEntity injector, double ember) {
+		if (ember <= 0.0D) {
+			return;
+		}
+		double previousSize = size;
 		size += ember;
-		addExperience((int) ember);
+		fractionalExperience += ember;
+		int experience = (int) Math.floor(fractionalExperience);
+		if (experience > 0) {
+			addExperience(experience);
+			fractionalExperience -= experience;
+		}
 		setChanged();
-		if ((size % 20) == 0 || xp <= 1) {
+		if ((int) Math.floor(previousSize / 20.0D) != (int) Math.floor(size / 20.0D) || xp <= 1) {
 			syncToClient();
 		}
 	}

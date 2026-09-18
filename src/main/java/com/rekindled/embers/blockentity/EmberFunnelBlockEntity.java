@@ -4,6 +4,7 @@ import com.rekindled.embers.RegistryManager;
 import com.rekindled.embers.api.capabilities.EmbersCapabilities;
 import com.rekindled.embers.api.power.IEmberCapability;
 import com.rekindled.embers.compat.create.CreateBlazeBurnerHelper;
+import com.rekindled.embers.compat.create.CreateCompat;
 import com.rekindled.embers.compat.create.EmberFueledBlazeBurner;
 import com.rekindled.embers.datagen.EmbersSounds;
 import com.rekindled.embers.entity.EmberPacketEntity;
@@ -42,7 +43,7 @@ public class EmberFunnelBlockEntity extends EmberReceiverBlockEntity {
 		Direction facing = state.getValue(BlockStateProperties.FACING);
 		BlockEntity attachedTile = SubLevelCompat.findAdjacent(blockEntity, facing.getOpposite());
 		if (blockEntity.ticksExisted % 2 == 0 && attachedTile != null){
-			if (attachedTile instanceof EmberFueledBlazeBurner) {
+			if (CreateCompat.blazeBurnerIntegrationEnabled() && attachedTile instanceof EmberFueledBlazeBurner) {
 				transferToBlazeBurners(level, attachedTile.getBlockPos(), blockEntity);
 				return;
 			}

@@ -8,10 +8,10 @@ import javax.annotation.Nullable;
 
 import com.rekindled.embers.EmbersEvents;
 import com.rekindled.embers.api.item.IEmberChargedTool;
-import com.rekindled.embers.particle.GlowParticleOptions;
 import com.rekindled.embers.util.EmberInventoryUtil;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.Entity;
@@ -53,7 +53,7 @@ public class ClockworkToolItem extends DiggerItem implements IEmberChargedTool {
 	public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
 		ItemData.updateTag(stack, tag -> tag.putBoolean("didUse", true));
 		if (target.level() instanceof ServerLevel serverLevel) {
-			serverLevel.sendParticles(GlowParticleOptions.EMBER, target.getX(), target.getY() + target.getEyeHeight() / 1.5, target.getZ(), 70, 0.15, 0.15, 0.15, 0.6);
+			serverLevel.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getEyeHeight() / 1.5, target.getZ(), 70, 0.15, 0.15, 0.15, 0.6);
 		}
 		return super.hurtEnemy(stack, target, attacker);
 	}
