@@ -1,6 +1,6 @@
 {
   "values": [
-    "#c:armors/boots",
+    "#minecraft:foot_armor",
     {
       "id": "miapi:modular_boots",
       "required": false

@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import com.rekindled.embers.Embers;
+import com.rekindled.embers.EmbersDataComponents;
 import com.rekindled.embers.RegistryManager;
 import com.rekindled.embers.RegistryManager.StoneDecoBlocks;
 import com.rekindled.embers.compat.curios.CuriosCompat;
@@ -15,6 +16,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.data.loot.BlockLootSubProvider;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
+import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 
 public class EmbersBlockLootTables extends BlockLootSubProvider {
 
@@ -108,7 +114,10 @@ public class EmbersBlockLootTables extends BlockLootSubProvider {
 		dropSelf(RegistryManager.MELTER.get());
 		dropSelf(RegistryManager.FLUID_PIPE.get());
 		dropSelf(RegistryManager.FLUID_EXTRACTOR.get());
-		dropSelf(RegistryManager.FLUID_VESSEL.get());
+		add(RegistryManager.FLUID_VESSEL.get(), block -> LootTable.lootTable().withPool(
+				applyExplosionCondition(block, LootPool.lootPool().setRolls(ConstantValue.exactly(1))
+						.add(LootItem.lootTableItem(block).apply(CopyComponentsFunction.copyComponents(
+								CopyComponentsFunction.Source.BLOCK_ENTITY).include(EmbersDataComponents.FLUID_CONTENTS.get()))))));
 		dropSelf(RegistryManager.STAMPER.get());
 		dropSelf(RegistryManager.STAMP_BASE.get());
 		dropSelf(RegistryManager.BIN.get());

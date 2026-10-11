@@ -23,6 +23,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.neoforged.fml.ModList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -43,7 +44,8 @@ public class EmberFunnelBlockEntity extends EmberReceiverBlockEntity {
 		Direction facing = state.getValue(BlockStateProperties.FACING);
 		BlockEntity attachedTile = SubLevelCompat.findAdjacent(blockEntity, facing.getOpposite());
 		if (blockEntity.ticksExisted % 2 == 0 && attachedTile != null){
-			if (CreateCompat.blazeBurnerIntegrationEnabled() && attachedTile instanceof EmberFueledBlazeBurner) {
+			if (ModList.get().isLoaded("create") && CreateCompat.blazeBurnerIntegrationEnabled()
+					&& attachedTile instanceof EmberFueledBlazeBurner) {
 				transferToBlazeBurners(level, attachedTile.getBlockPos(), blockEntity);
 				return;
 			}

@@ -1,8 +1,5 @@
 package com.rekindled.embers.block;
 
-import java.util.HashMap;
-import java.util.List;
-
 import javax.annotation.Nullable;
 
 import com.rekindled.embers.RegistryManager;
@@ -12,13 +9,10 @@ import com.rekindled.embers.util.ComparatorSignalUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.cauldron.CauldronInteraction;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -40,13 +34,11 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraft.world.level.storage.loot.LootParams;
-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import com.rekindled.embers.compat.legacy.capabilities.ForgeCapabilities;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.fluids.FluidUtil;
@@ -68,33 +60,25 @@ public class FluidVesselBlock extends AbstractCauldronBlock implements EntityBlo
 		return CODEC;
 	}
 
-	public InteractionResult useLegacy(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+	@Override
+	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
 		if (level.getBlockEntity(pos) instanceof FluidVesselBlockEntity vesselEntity) {
-			ItemStack heldItem = player.getItemInHand(hand);
-			if (!heldItem.isEmpty()) {
-				IFluidHandler cap = com.rekindled.embers.util.CapabilityCompat.getCapability(vesselEntity, ForgeCapabilities.FLUID_HANDLER, hit.getDirection()).orElse(null);
+			if (!stack.isEmpty()) {
+				IFluidHandler cap = level.getCapability(Capabilities.FluidHandler.BLOCK, pos, state, vesselEntity, hit.getDirection());
 				if (cap != null) {
 					boolean didFill = FluidUtil.interactWithFluidHandler(player, hand, cap);
 
 					if (didFill) {
-						return InteractionResult.SUCCESS;
+						return ItemInteractionResult.sidedSuccess(level.isClientSide);
 					}
 				}
-				//prevent buckets from placing their fluid in the world when clicking on the vessel
-				if (com.rekindled.embers.util.CapabilityCompat.getCapability(heldItem, ForgeCapabilities.FLUID_HANDLER_ITEM).isPresent()) {
-					return InteractionResult.CONSUME_PARTIAL;
+				// Keep full vessels from allowing buckets to place fluid in the world.
+				if (stack.getCapability(Capabilities.FluidHandler.ITEM) != null) {
+					return ItemInteractionResult.CONSUME_PARTIAL;
 				}
 			}
 		}
-		return InteractionResult.PASS;
-	}
-
-	@Override
-	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-		InteractionResult result = useLegacy(state, level, pos, player, hand, hit);
-		if (result == InteractionResult.CONSUME_PARTIAL)
-			return ItemInteractionResult.CONSUME_PARTIAL;
-		return result.consumesAction() ? ItemInteractionResult.sidedSuccess(level.isClientSide) : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 	}
 
 	@Override
@@ -140,7 +124,7 @@ public class FluidVesselBlock extends AbstractCauldronBlock implements EntityBlo
 	@Override
 	public void receiveStalactiteDrip(BlockState state, Level level, BlockPos pos, Fluid fluid) {
 		if (level.getBlockEntity(pos) instanceof FluidVesselBlockEntity vesselEntity) {
-			IFluidHandler cap = com.rekindled.embers.util.CapabilityCompat.getCapability(vesselEntity, ForgeCapabilities.FLUID_HANDLER, Direction.UP).orElse(null);
+			IFluidHandler cap = level.getCapability(Capabilities.FluidHandler.BLOCK, pos, state, vesselEntity, Direction.UP);
 			if (cap != null) {
 				int amount = 333;
 				if (fluid == Fluids.LAVA)

@@ -5,6 +5,7 @@ import java.util.Random;
 import org.joml.Vector3f;
 
 import com.rekindled.embers.ConfigManager;
+import com.rekindled.embers.EmbersDataComponents;
 import com.rekindled.embers.RegistryManager;
 import com.rekindled.embers.particle.VaporParticleOptions;
 import com.rekindled.embers.util.Misc;
@@ -13,10 +14,12 @@ import com.rekindled.embers.util.SubLevelParticleUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.SimpleFluidContent;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
 public class FluidVesselBlockEntity extends OpenTankBlockEntity {
@@ -47,6 +50,23 @@ public class FluidVesselBlockEntity extends OpenTankBlockEntity {
 
 	public int getCapacity(){
 		return tank.getCapacity();
+	}
+
+	@Override
+	protected void collectImplicitComponents(DataComponentMap.Builder components) {
+		super.collectImplicitComponents(components);
+		if (!tank.isEmpty()) {
+			components.set(EmbersDataComponents.FLUID_CONTENTS.get(), SimpleFluidContent.copyOf(tank.getFluid()));
+		}
+	}
+
+	@Override
+	protected void applyImplicitComponents(DataComponentInput components) {
+		super.applyImplicitComponents(components);
+		SimpleFluidContent fluid = components.get(EmbersDataComponents.FLUID_CONTENTS.get());
+		if (fluid != null) {
+			tank.setFluid(fluid.copy());
+		}
 	}
 
 	public FluidStack getFluidStack() {

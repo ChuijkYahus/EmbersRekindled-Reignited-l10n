@@ -1,6 +1,6 @@
 {
   "values": [
-    "#c:armors/chestplates",
+    "#minecraft:chest_armor",
     {
       "id": "miapi:modular_chestplate",
       "required": false

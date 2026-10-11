@@ -1,6 +1,6 @@
 {
   "values": [
-    "#c:armors/helmets",
+    "#minecraft:head_armor",
     "minecraft:carved_pumpkin",
     {
       "id": "miapi:modular_helmet",

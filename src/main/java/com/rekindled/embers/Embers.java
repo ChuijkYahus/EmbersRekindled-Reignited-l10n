@@ -47,7 +47,9 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent;
+import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.capability.templates.FluidHandlerItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
@@ -89,6 +91,7 @@ public class Embers {
 		RegistryManager.STRUCTURE_TYPES.register(modEventBus);
 		RegistryManager.STRUCTURE_PROCESSOR_TYPES.register(modEventBus);
 		RegistryManager.ATTACHMENT_TYPES.register(modEventBus);
+		EmbersDataComponents.TYPES.register(modEventBus);
 		EmbersSounds.init();
 
 		ConfigManager.register(modContainer);
@@ -145,6 +148,14 @@ public class Embers {
 
 	public void registerCaps(RegisterCapabilitiesEvent event) {
 		registerLegacyBlockEntityCapabilities(event);
+		event.registerItem(Capabilities.FluidHandler.ITEM,
+				(stack, context) -> new FluidHandlerItemStack(EmbersDataComponents.FLUID_CONTENTS, stack,
+						ConfigManager.FLUID_VESSEL_CAPACITY.get()) {
+					@Override
+					public boolean canFillFluidType(FluidStack fluid) {
+						return !Misc.isGaseousFluid(fluid);
+					}
+				}, RegistryManager.FLUID_VESSEL_ITEM.get());
 		event.registerBlockEntity(Capabilities.EnergyStorage.BLOCK, RegistryManager.EMBER_ENERGY_CONVERTER_ENTITY.get(),
 				(blockEntity, side) -> blockEntity.getEnergyStorage(side));
 	}

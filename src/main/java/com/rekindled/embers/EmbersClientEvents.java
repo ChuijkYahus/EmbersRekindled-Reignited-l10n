@@ -68,6 +68,7 @@ import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
@@ -616,7 +617,8 @@ public class EmbersClientEvents {	public static int ticks = 0;
 	}
 
 	private static void addTranslatedDescriptionTooltip(RenderTooltipEvent.GatherComponents event) {
-		if (event.getItemStack().isEmpty()) {
+		if (event.getItemStack().isEmpty()
+				|| !Embers.MODID.equals(BuiltInRegistries.ITEM.getKey(event.getItemStack().getItem()).getNamespace())) {
 			return;
 		}
 
@@ -626,14 +628,24 @@ public class EmbersClientEvents {	public static int ticks = 0;
 		}
 
 		int index = Math.min(1, event.getTooltipElements().size());
-		event.getTooltipElements().add(index++, Either.left(Component.translatable(key).withStyle(ChatFormatting.GRAY)));
+		index = addDescriptionTooltipLine(event, key, index);
 		for (int line = 1; line < 8; line++) {
 			String lineKey = key + "." + line;
 			if (!I18n.exists(lineKey)) {
 				break;
 			}
-			event.getTooltipElements().add(index++, Either.left(Component.translatable(lineKey).withStyle(ChatFormatting.GRAY)));
+			index = addDescriptionTooltipLine(event, lineKey, index);
 		}
+	}
+
+	private static int addDescriptionTooltipLine(RenderTooltipEvent.GatherComponents event, String key, int index) {
+		Component description = Component.translatable(key).withStyle(ChatFormatting.GRAY);
+		boolean alreadyPresent = event.getTooltipElements().stream()
+				.anyMatch(element -> element.left().filter(text -> text.getString().equals(description.getString())).isPresent());
+		if (!alreadyPresent) {
+			event.getTooltipElements().add(index++, Either.left(description));
+		}
+		return index;
 	}
 
 	public static String getFormattedModifierLevel(int level) {

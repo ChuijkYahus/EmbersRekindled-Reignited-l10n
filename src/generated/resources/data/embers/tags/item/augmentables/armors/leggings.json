@@ -1,6 +1,6 @@
 {
   "values": [
-    "#c:armors/leggings",
+    "#minecraft:leg_armor",
     {
       "id": "miapi:modular_leggings",
       "required": false

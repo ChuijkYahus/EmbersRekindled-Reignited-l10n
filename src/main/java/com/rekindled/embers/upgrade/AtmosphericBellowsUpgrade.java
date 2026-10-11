@@ -9,11 +9,12 @@ import com.rekindled.embers.api.event.HeatCoilVisualEvent;
 import com.rekindled.embers.api.event.UpgradeEvent;
 import com.rekindled.embers.api.upgrades.UpgradeContext;
 import com.rekindled.embers.blockentity.HearthCoilBlockEntity;
-import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
+import com.rekindled.embers.compat.create.CreateBlazeBurnerHelper;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.neoforged.fml.ModList;
 
 
 public class AtmosphericBellowsUpgrade extends DefaultUpgradeProvider {
@@ -43,8 +44,8 @@ public class AtmosphericBellowsUpgrade extends DefaultUpgradeProvider {
 		if (type.equals("recipe_type") && value instanceof RecipeType<?>) {
 			return (T) RecipeType.BLASTING;
 		}
-		if (type.equals("create_blaze_burner_heat") && value instanceof BlazeBurnerBlock.HeatLevel && shouldSuperheatBlazeBurner(tile)) {
-			return (T) BlazeBurnerBlock.HeatLevel.SEETHING;
+		if (type.equals("create_blaze_burner_heat") && shouldSuperheatBlazeBurner(tile)) {
+			return CreateBlazeBurnerHelper.superheat(value);
 		}
 		if (type.equals("create_blaze_burner_superheat") && value instanceof Boolean && shouldSuperheatBlazeBurner(tile)) {
 			return (T) Boolean.TRUE;
@@ -53,7 +54,8 @@ public class AtmosphericBellowsUpgrade extends DefaultUpgradeProvider {
 	}
 
 	private static boolean isCreateBlazeBurner(BlockEntity tile) {
-		return tile.getClass().getName().equals("com.simibubi.create.content.processing.burner.BlazeBurnerBlockEntity");
+		return ModList.get().isLoaded("create")
+				&& tile.getClass().getName().equals("com.simibubi.create.content.processing.burner.BlazeBurnerBlockEntity");
 	}
 
 	private boolean shouldSuperheatBlazeBurner(BlockEntity tile) {

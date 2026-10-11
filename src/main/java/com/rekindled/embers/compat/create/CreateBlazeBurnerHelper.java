@@ -34,6 +34,11 @@ public final class CreateBlazeBurnerHelper {
 	private CreateBlazeBurnerHelper() {
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <T> T superheat(T heatLevel) {
+		return heatLevel instanceof BlazeBurnerBlock.HeatLevel ? (T) BlazeBurnerBlock.HeatLevel.SEETHING : heatLevel;
+	}
+
 	public static List<EmberFueledBlazeBurner> getConnectedBurners(Level level, BlockPos origin) {
 		BlockEntity originBlockEntity = level.getBlockEntity(origin);
 		if (!(originBlockEntity instanceof EmberFueledBlazeBurner originBurner)) {

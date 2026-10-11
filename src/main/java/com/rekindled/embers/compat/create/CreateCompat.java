@@ -62,6 +62,9 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.rekindled.embers.api.capabilities.EmbersCapabilities;
 
+/**
+ * Create-dependent registrations. Callers must check that Create is loaded before referencing this class.
+ */
 public final class CreateCompat {
 	private static final boolean ENABLE_KINETIC_MINI_BOILER_REGISTRATION = false;
 	private static final AccumulatedFluidCountDisplaySource ACCUMULATED_FLUIDS = new AccumulatedFluidCountDisplaySource();
